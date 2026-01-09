@@ -6,6 +6,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
+/**
+ * Response DTO for Report entity.
+ *
+ * @author Backend Team
+ * @version 2.0
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -13,12 +21,15 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ReportResponse {
 
-    private String id;
+    private UUID id;
+    private UUID decisionId;
+    private String title;
     private String year;
     private String content;
     private String expectedCompletionQuarter;
+    private String status;
     private String createdAt;
-    private String createdBy;
+    private String updatedAt;
     private CreatedByUserInfo createdByUser;
 
     @Data
@@ -28,6 +39,6 @@ public class ReportResponse {
     public static class CreatedByUserInfo {
         private String firstName;
         private String lastName;
+        private String email;
     }
 }
-

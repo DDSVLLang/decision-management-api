@@ -8,7 +8,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * All fields optional, used for PATCH/PUT updates.
+ * Request DTO for updating an existing Decision.
+ * All fields are optional.
+ *
+ * @author Backend Team
+ * @version 2.0
  */
 @Data
 @Builder
@@ -19,8 +23,6 @@ public class UpdateDecisionRequest {
     @Size(max = 500, message = "Title must not exceed 500 characters")
     private String title;
 
-    private String decisionBody;
-
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Decision date must be in format YYYY-MM-DD")
     private String decisionDate;
 
@@ -28,12 +30,16 @@ public class UpdateDecisionRequest {
 
     private String decisionCommittee;
 
-    private String responsibleDepartment;
+    private String decisionDepartment;
 
     private String topic;
 
     @Pattern(regexp = "pending|in-progress|completed", message = "Status must be pending, in-progress, or completed")
     private String status;
+
+    // NEW: Priority field
+    @Pattern(regexp = "low|medium|high|urgent", message = "Priority must be low, medium, high, or urgent")
+    private String priority;
 
     private String content;
 
@@ -41,5 +47,11 @@ public class UpdateDecisionRequest {
     private String dueDate;
 
     private String implementationNotes;
-}
 
+    // NEW: Resource tracking fields
+    private Integer estimatedHours;
+
+    private Integer actualHours;
+
+    private String assigneeId; // UUID as string
+}

@@ -9,13 +9,8 @@ import de.langen.beschlussservice.api.dto.response.ReportResponse;
 import de.langen.beschlussservice.api.exception.ResourceNotFoundException;
 import de.langen.beschlussservice.application.mapper.DecisionMapper;
 import de.langen.beschlussservice.application.mapper.ReportMapper;
-import de.langen.beschlussservice.domain.entity.Decision;
-import de.langen.beschlussservice.domain.entity.DecisionStatus;
-import de.langen.beschlussservice.domain.entity.Report;
-import de.langen.beschlussservice.domain.entity.User;
-import de.langen.beschlussservice.domain.repository.DecisionRepository;
-import de.langen.beschlussservice.domain.repository.ReportRepository;
-import de.langen.beschlussservice.domain.repository.UserRepository;
+import de.langen.beschlussservice.domain.entity.*;
+import de.langen.beschlussservice.domain.repository.*;
 import de.langen.beschlussservice.infrastructure.persistance.specification.DecisionSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Service for Decision entity operations.
+ * Handles business logic and entity relationship management.
+ *
+ * @author Backend Team
+ * @version 2.0
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -35,14 +37,18 @@ public class DecisionService {
 
     private final DecisionRepository decisionRepository;
     private final UserRepository userRepository;
-    private final ReportRepository reportRepository;
+    private final TopicRepository topicRepository;
+    private final CommitteeRepository committeeRepository;
+    private final DepartmentRepository departmentRepository;
     private final DecisionMapper decisionMapper;
+    private final ReportRepository reportRepository;
     private final ReportMapper reportMapper;
 
     @Transactional
     public DecisionResponse createDecision(CreateDecisionRequest request) {
         log.info("Creating new decision: {}", request.getTitle());
 
+        // Mapper handles String → Entity conversion via repositories
         Decision decision = decisionMapper.toEntity(request);
         var savedDecision = decisionRepository.save(decision);
 
@@ -91,23 +97,84 @@ public class DecisionService {
         Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
 
-        // Update fields manually or use mapper with @MappingTarget
+        // Update simple fields
         if (request.getTitle() != null) {
             decision.setTitle(request.getTitle());
         }
-        if (request.getStatus() != null) decision.setStatus(
-                DecisionStatus.valueOf(
-                        request.getStatus().toUpperCase().replace("-", "_")
-                )
-        );
+
+        if (request.getStatus() != null) {
+            decision.setStatus(
+                    DecisionStatus.valueOf(
+                            request.getStatus().toUpperCase().replace("-", "_")
+                    )
+            );
+        }
+
+        if (request.getPriority() != null) {
+            decision.setPriority(
+                    DecisionPriority.valueOf(
+                            request.getPriority().toUpperCase().replace("-", "_")
+                    )
+            );
+        }
+
         if (request.getPrintMatter() != null) {
             decision.setPrintMatter(request.getPrintMatter());
         }
-        if (request.getResponsibleDepartment() != null) {
-            decision.setResponsibleDepartment(request.getResponsibleDepartment());
+
+        if (request.getContent() != null) {
+            decision.setContent(request.getContent());
         }
+
+        if (request.getDueDate() != null) {
+            decision.setDueDate(parseDate(request.getDueDate()));
+        }
+
+        if (request.getImplementationNotes() != null) {
+            decision.setImplementationNotes(request.getImplementationNotes());
+        }
+
+        if (request.getEstimatedHours() != null) {
+            decision.setEstimatedHours(request.getEstimatedHours());
+        }
+
+        if (request.getActualHours() != null) {
+            decision.setActualHours(request.getActualHours());
+        }
+
+        // Update Entity relationships (String → Entity conversion)
+        if (request.getDecisionDepartment() != null) {
+            Department department = departmentRepository.findByName(request.getDecisionDepartment())
+                    .or(() -> departmentRepository.findByShortName(request.getDecisionDepartment()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Department not found: " + request.getDecisionDepartment()
+                    ));
+            decision.setResponsibleDepartment(department);
+        }
+
         if (request.getDecisionCommittee() != null) {
-            decision.setDecisionCommittee(request.getDecisionCommittee());
+            Committee committee = committeeRepository.findByName(request.getDecisionCommittee())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Committee not found: " + request.getDecisionCommittee()
+                    ));
+            decision.setCommittee(committee);
+        }
+
+        if (request.getTopic() != null) {
+            Topic topic = topicRepository.findByName(request.getTopic())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Topic not found: " + request.getTopic()
+                    ));
+            decision.setTopic(topic);
+        }
+
+        if (request.getAssigneeId() != null) {
+            UUID assigneeUuid = UUID.fromString(request.getAssigneeId());
+            User assignee = userRepository.findById(assigneeUuid)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "User not found with id: " + request.getAssigneeId()
+                    ));
+            decision.setAssignee(assignee);
         }
 
         Decision updatedDecision = decisionRepository.save(decision);
@@ -115,10 +182,10 @@ public class DecisionService {
     }
 
     @Transactional
-    public void deleteDecision(Long id) {
+    public void deleteDecision(String id) {
         log.info("Soft deleting decision with id: {}", id);
 
-        Decision decision = decisionRepository.findById(id)
+        Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
 
         decisionRepository.delete(decision); // Triggers soft delete
@@ -155,7 +222,6 @@ public class DecisionService {
         return reportMapper.toResponse(saved, createdByUser);
     }
 
-
     private LocalDate parseDate(String dateStr) {
         if (dateStr == null || dateStr.isBlank()) return null;
         try {
@@ -166,4 +232,3 @@ public class DecisionService {
         }
     }
 }
-

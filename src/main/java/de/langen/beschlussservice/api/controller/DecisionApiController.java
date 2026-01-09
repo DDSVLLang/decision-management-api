@@ -108,21 +108,8 @@ public class DecisionApiController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     //@PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete decision (soft delete)")
-    public void deleteDecision(@PathVariable Long id) {
+    public void deleteDecision(@PathVariable String id) {
         decisionService.deleteDecision(id);
-    }
-
-    @PostMapping("/{decisionId}/report")
-    @ResponseStatus(HttpStatus.CREATED)
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @Operation(summary = "Create a report for a decision")
-    public ApiResponse<ReportResponse> createReportForDecision(
-            @PathVariable String decisionId,
-            @Valid @RequestBody CreateReportRequest request
-    ) {
-
-        ReportResponse response = decisionService.createReport(decisionId, request, "");
-        return ApiResponse.success(response, "Report created successfully");
     }
 
 }

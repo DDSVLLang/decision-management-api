@@ -9,6 +9,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Request DTO for creating a new Decision.
+ *
+ * @author Backend Team
+ * @version 2.0
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -38,6 +44,10 @@ public class CreateDecisionRequest {
     @Pattern(regexp = "pending|in-progress|completed", message = "Status must be pending, in-progress, or completed")
     private String status;
 
+    // NEW: Priority field
+    @Pattern(regexp = "low|medium|high|urgent", message = "Priority must be low, medium, high, or urgent")
+    private String priority; // Optional, defaults to MEDIUM in mapper
+
     @NotBlank(message = "Content is required")
     private String content;
 
@@ -45,5 +55,11 @@ public class CreateDecisionRequest {
     private String dueDate;
 
     private String implementationNotes;
-}
 
+    // NEW: Optional fields for resource tracking
+    private Integer estimatedHours;
+
+    private Integer actualHours;
+
+    private String assigneeId; // UUID as string
+}
