@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,10 +16,11 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DecisionResponse {
 
-    private Long id;
+    private UUID id;
     private String title;
     private String decisionBody;
     private String decisionDate;
+    private String decisionCommittee;
     private String printMatter;
     private String responsibleDepartment;
     private String topic;

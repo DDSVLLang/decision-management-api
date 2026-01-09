@@ -25,6 +25,9 @@ public class CreateDecisionRequest {
 
     private String printMatter;
 
+    @NotBlank(message = "Decision committee is required")
+    private String decisionCommittee;
+
     @NotBlank(message = "Responsible department is required")
     private String responsibleDepartment;
 

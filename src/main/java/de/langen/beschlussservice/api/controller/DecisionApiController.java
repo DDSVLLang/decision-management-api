@@ -44,7 +44,7 @@ public class DecisionApiController {
     @GetMapping("/{id}")
     //@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Operation(summary = "Get decision by ID")
-    public ApiResponse<DecisionResponse> getDecision(@PathVariable Long id) {
+    public ApiResponse<DecisionResponse> getDecision(@PathVariable String id) {
         DecisionResponse response = decisionService.getDecisionById(id);
         return ApiResponse.success(response);
     }
@@ -97,7 +97,7 @@ public class DecisionApiController {
     //@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Operation(summary = "Update decision")
     public ApiResponse<DecisionResponse> updateDecision(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody UpdateDecisionRequest request
     ) {
         DecisionResponse response = decisionService.updateDecision(id, request);
@@ -117,7 +117,7 @@ public class DecisionApiController {
     // @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Operation(summary = "Create a report for a decision")
     public ApiResponse<ReportResponse> createReportForDecision(
-            @PathVariable Long decisionId,
+            @PathVariable String decisionId,
             @Valid @RequestBody CreateReportRequest request
     ) {
 

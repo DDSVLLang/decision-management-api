@@ -24,13 +24,16 @@ public class Decision {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
 
     @Column(nullable = false, length = 500)
     private String title;
 
     @Column(name = "decision_date", nullable = false)
     private LocalDate decisionDate;
+
+    @Column(name = "decision_committee", nullable = false)
+    private String decisionCommittee;
 
     @Column(name = "print_matter", length = 255)
     private String printMatter;

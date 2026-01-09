@@ -1,6 +1,5 @@
 package de.langen.beschlussservice.application.service;
 
-
 import de.langen.beschlussservice.api.dto.request.CreateDecisionRequest;
 import de.langen.beschlussservice.api.dto.request.CreateReportRequest;
 import de.langen.beschlussservice.api.dto.request.SearchDecisionRequest;
@@ -27,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +35,8 @@ public class DecisionService {
 
     private final DecisionRepository decisionRepository;
     private final UserRepository userRepository;
-    private final DecisionMapper decisionMapper;
     private final ReportRepository reportRepository;
+    private final DecisionMapper decisionMapper;
     private final ReportMapper reportMapper;
 
     @Transactional
@@ -51,10 +51,10 @@ public class DecisionService {
     }
 
     @Transactional(readOnly = true)
-    public DecisionResponse getDecisionById(Long id) {
+    public DecisionResponse getDecisionById(String id) {
         log.debug("Fetching decision with id: {}", id);
 
-        Decision decision = decisionRepository.findById(id)
+        Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
 
         User completedByUser = decision.getCompletedBy() != null
@@ -85,21 +85,30 @@ public class DecisionService {
     }
 
     @Transactional
-    public DecisionResponse updateDecision(Long id, UpdateDecisionRequest request) {
+    public DecisionResponse updateDecision(String id, UpdateDecisionRequest request) {
         log.info("Updating decision with id: {}", id);
 
-        Decision decision = decisionRepository.findById(id)
+        Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
 
         // Update fields manually or use mapper with @MappingTarget
-        if (request.getTitle() != null) decision.setTitle(request.getTitle());
+        if (request.getTitle() != null) {
+            decision.setTitle(request.getTitle());
+        }
         if (request.getStatus() != null) decision.setStatus(
                 DecisionStatus.valueOf(
                         request.getStatus().toUpperCase().replace("-", "_")
                 )
         );
-        if (request.getPrintMatter() != null) decision.setPrintMatter(request.getPrintMatter());
-        if (request.getResponsibleDepartment() != null) decision.setResponsibleDepartment(request.getResponsibleDepartment());
+        if (request.getPrintMatter() != null) {
+            decision.setPrintMatter(request.getPrintMatter());
+        }
+        if (request.getResponsibleDepartment() != null) {
+            decision.setResponsibleDepartment(request.getResponsibleDepartment());
+        }
+        if (request.getDecisionCommittee() != null) {
+            decision.setDecisionCommittee(request.getDecisionCommittee());
+        }
 
         Decision updatedDecision = decisionRepository.save(decision);
         return decisionMapper.toResponse(updatedDecision, null);
@@ -116,13 +125,13 @@ public class DecisionService {
     }
 
     @Transactional
-    public ReportResponse createReport(Long decisionId,
+    public ReportResponse createReport(String decisionId,
                                        CreateReportRequest request,
                                        String creatorEmail) {
 
         log.info("Creating report for decisionId={} and year={}", decisionId, request.getYear());
 
-        Decision decision = decisionRepository.findById(decisionId)
+        Decision decision = decisionRepository.findById(UUID.fromString(decisionId))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Decision not found with id: " + decisionId));
 

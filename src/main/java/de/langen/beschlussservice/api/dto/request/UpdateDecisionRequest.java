@@ -26,6 +26,8 @@ public class UpdateDecisionRequest {
 
     private String printMatter;
 
+    private String decisionCommittee;
+
     private String responsibleDepartment;
 
     private String topic;

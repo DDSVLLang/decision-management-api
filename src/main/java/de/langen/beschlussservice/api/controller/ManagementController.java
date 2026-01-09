@@ -1,10 +1,7 @@
 package de.langen.beschlussservice.api.controller;
 
 
-import de.langen.beschlussservice.api.dto.response.ApiResponse;
-import de.langen.beschlussservice.api.dto.response.DepartmentResponse;
-import de.langen.beschlussservice.api.dto.response.TopicResponse;
-import de.langen.beschlussservice.api.dto.response.UserResponse;
+import de.langen.beschlussservice.api.dto.response.*;
 import de.langen.beschlussservice.application.service.ManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,10 +33,10 @@ public class ManagementController {
         return ApiResponse.success(managementService.getAllDepartments());
     }
 
-    @GetMapping("/user")
-    // @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all users")
-    public ApiResponse<List<UserResponse>> getAllUsers() {
-        return ApiResponse.success(managementService.getAllUsers());
+    @GetMapping("/committee")
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @Operation(summary = "Get all committees")
+    public ApiResponse<List<CommitteeResponse>> getAllCommittees() {
+        return ApiResponse.success(managementService.getAllCommittees());
     }
 }
