@@ -52,9 +52,12 @@ public class DecisionSpecification {
             // ================================================================
             if (status != null && !status.isBlank()) {
                 try {
-                    DecisionStatus decisionStatus = DecisionStatus.valueOf(
-                            status.toUpperCase().replace("-", "_")
-                    );
+                    // Normalize status: "done" → "COMPLETED"
+                    String normalizedStatus = status.equalsIgnoreCase("done")
+                            ? "COMPLETED"
+                            : status.toUpperCase().replace("-", "_");
+
+                    DecisionStatus decisionStatus = DecisionStatus.valueOf(normalizedStatus);
                     predicates.add(criteriaBuilder.equal(root.get("status"), decisionStatus));
                 } catch (IllegalArgumentException e) {
                     // Invalid status - skip filter

@@ -12,9 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,7 +22,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import de.langen.beschlussservice.domain.entity.User;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/decision")
@@ -35,6 +32,12 @@ public class DecisionApiController {
 
     private final DecisionService decisionService;
 
+    /**
+     * Create a new decision.
+     * ADMIN ONLY
+     *
+     * POST /api/v1/decision
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN')")
@@ -58,58 +61,65 @@ public class DecisionApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Get decision by ID.
+     * ADMIN: Can view any decision
+     * USER: Can only view decisions assigned to them
+     *
+     * GET /api/v1/decision/{id}
+     */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get decision by ID")
-    public ApiResponse<DecisionResponse> getDecision(@PathVariable String id) {
-        DecisionResponse response = decisionService.getDecisionById(id);
-        return ApiResponse.success(response);
-    }
-
-    @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    @Operation(summary = "Search decisions with filters and pagination")
-    public ApiResponse<Page<DecisionResponse>> searchDecisions(
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String topic,
-            @RequestParam(required = false) String responsibleDepartment,
-            @RequestParam(required = false) String decisionDateFrom,
-            @RequestParam(required = false) String decisionDateTo,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "decisionDate,desc") String[] sort
-    ) {
-        SearchDecisionRequest searchRequest = SearchDecisionRequest.builder()
-                .status(status)
-                .topic(topic)
-                .responsibleDepartment(responsibleDepartment)
-                .decisionDateFrom(decisionDateFrom)
-                .decisionDateTo(decisionDateTo)
-                .keyword(keyword)
+    public ResponseEntity<ApiResponse<DecisionResponse>> getDecision(@PathVariable String id, @AuthenticationPrincipal User currentUser) {
+        DecisionResponse decision = decisionService.getDecisionById(id, currentUser);
+        ApiResponse<DecisionResponse> response = ApiResponse.<DecisionResponse>builder()
+                .success(true)
+                .data(decision)
+                .timestamp(LocalDateTime.now())
                 .build();
 
-        Sort sorting = Sort.by(
-                sort[1].equalsIgnoreCase("asc")
-                        ? Sort.Order.asc(sort[0])
-                        : Sort.Order.desc(sort[0])
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Search decisions with filters.
+     * ADMIN: Returns all decisions
+     * USER: Returns only decisions assigned to them
+     *
+     * GET /api/v1/decision/search
+     */
+    @GetMapping("/search")
+    @Operation(summary = "Search decisions with filters and pagination")
+    public ResponseEntity<ApiResponse<Page<DecisionResponse>>> searchDecisions(
+            @ModelAttribute SearchDecisionRequest request,
+            Pageable pageable,
+            @AuthenticationPrincipal User currentUser
+
+    ) {
+        log.debug("Searching decisions by user: {} (role: {})",
+                currentUser.getEmail(), currentUser.getRole());
+
+        Page<DecisionResponse> decisions = decisionService.searchDecisions(
+                request,
+                pageable,
+                currentUser
         );
 
-        Pageable pageable = PageRequest.of(page, size, sorting);
-        Page<DecisionResponse> decisions = decisionService.searchDecisions(searchRequest, pageable);
-
-        return ApiResponse.<Page<DecisionResponse>>builder()
+        ApiResponse<Page<DecisionResponse>> response = ApiResponse.<Page<DecisionResponse>>builder()
                 .success(true)
                 .data(decisions)
-                .metadata(Map.of(
-                        "totalElements", decisions.getTotalElements(),
-                        "totalPages", decisions.getTotalPages(),
-                        "currentPage", decisions.getNumber(),
-                        "pageSize", decisions.getSize()
-                ))
+                .timestamp(LocalDateTime.now())
                 .build();
+
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * Update a decision.
+     * ADMIN ONLY
+     *
+     * PUT /api/v1/decision/{id}
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Update decision")
@@ -119,8 +129,10 @@ public class DecisionApiController {
             @AuthenticationPrincipal User currentUser
     ) {
 
-        log.info("Updating decision: {} by user: {}", id, currentUser.getEmail());
-        DecisionResponse decision  = decisionService.updateDecision(id, request, currentUser);
+        log.info("Updating decision: {} by admin: {}", id, currentUser.getEmail());
+
+        DecisionResponse decision = decisionService.updateDecision(id, request, currentUser);
+
         ApiResponse<DecisionResponse> response = ApiResponse.<DecisionResponse>builder()
                 .success(true)
                 .message("Decision updated successfully")
@@ -131,13 +143,85 @@ public class DecisionApiController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Delete a decision.
+     * ADMIN ONLY
+     *
+     * DELETE /api/v1/decision/{id}
+     */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete decision (soft delete)")
-    public void deleteDecision(@PathVariable String id) {
-        decisionService.deleteDecision(id);
+    public ResponseEntity<ApiResponse<Void>> deleteDecision(@PathVariable String id, @AuthenticationPrincipal User currentUser) {
+        log.info("Deleting decision: {} by admin: {}", id, currentUser.getEmail());
+
+        decisionService.deleteDecision(id, currentUser);
+
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .message("Decision deleted successfully")
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
+
+    /**
+     * Get all decisions assigned to current user.
+     *
+     * GET /api/v1/decision/my-assignments
+     */
+    @GetMapping("/my-assignments")
+    public ResponseEntity<ApiResponse<Page<DecisionResponse>>> getMyAssignments(
+            Pageable pageable,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        log.info("Fetching assignments for user: {}", currentUser.getEmail());
+
+        Page<DecisionResponse> decisions = decisionService.getAssignedDecisions(
+                currentUser.getId().toString(),
+                pageable,
+                currentUser
+        );
+
+        ApiResponse<Page<DecisionResponse>> response = ApiResponse.<Page<DecisionResponse>>builder()
+                .success(true)
+                .data(decisions)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get decisions assigned to a specific user.
+     * ADMIN: Can view for any user
+     * USER: Can only view own assignments
+     *
+     * GET /api/v1/decision/assignments/{userId}
+     */
+    @GetMapping("/assignments/{userId}")
+    public ResponseEntity<ApiResponse<Page<DecisionResponse>>> getUserAssignments(
+            @PathVariable String userId,
+            Pageable pageable,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        Page<DecisionResponse> decisions = decisionService.getAssignedDecisions(
+                userId,
+                pageable,
+                currentUser
+        );
+
+        ApiResponse<Page<DecisionResponse>> response = ApiResponse.<Page<DecisionResponse>>builder()
+                .success(true)
+                .data(decisions)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
 
 }
 

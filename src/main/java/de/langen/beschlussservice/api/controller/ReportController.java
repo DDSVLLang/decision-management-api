@@ -36,12 +36,10 @@ public class ReportController {
 
     /**
      * Create a new report for a decision.
+     * ADMIN: Can create for any decision
+     * USER: Can only create for decisions assigned to them
      *
      * POST /api/v1/decision/{decisionId}/report
-     *
-     * @param decisionId decision UUID
-     * @param request report creation data
-     * @return created report
      */
     @PostMapping("/decision/{decisionId}/report")
     public ResponseEntity<ApiResponse<ReportResponse>> createReport(
@@ -50,9 +48,6 @@ public class ReportController {
             @AuthenticationPrincipal User currentUser
     ) {
         log.info("Creating report for decision: {} by user: {}", decisionId, currentUser.getEmail());
-
-        // TODO: Get actual user email from Security Context
-        String creatorEmail = "admin@stadt-langen.de"; // Placeholder
 
         ReportResponse report = reportService.createReport(decisionId, request, currentUser);
 
@@ -68,12 +63,10 @@ public class ReportController {
 
     /**
      * Update an existing report.
+     * ADMIN: Can update any report
+     * USER: Can only update reports for decisions assigned to them
      *
      * PUT /api/v1/report/{reportId}
-     *
-     * @param reportId report UUID
-     * @param request update data
-     * @return updated report
      */
     @PutMapping("/report/{reportId}")
     public ResponseEntity<ApiResponse<ReportResponse>> updateReport(
@@ -97,19 +90,17 @@ public class ReportController {
 
     /**
      * Get a specific report by ID.
+     * ADMIN: Can view any report
+     * USER: Can only view reports for decisions assigned to them
      *
      * GET /api/v1/report/{reportId}
-     *
-     * @param reportId report UUID
-     * @return report details
      */
     @GetMapping("/report/{reportId}")
     public ResponseEntity<ApiResponse<ReportResponse>> getReport(
-            @PathVariable String reportId
+            @PathVariable String reportId,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.debug("Fetching report: {}", reportId);
-
-        ReportResponse report = reportService.getReportById(reportId);
+        ReportResponse report = reportService.getReportById(reportId, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
                 .success(true)
@@ -122,19 +113,17 @@ public class ReportController {
 
     /**
      * Get all reports for a specific decision.
+     * ADMIN: Can view reports for any decision
+     * USER: Can only view reports for decisions assigned to them
      *
      * GET /api/v1/decision/{decisionId}/reports
-     *
-     * @param decisionId decision UUID
-     * @return list of reports
      */
     @GetMapping("/decision/{decisionId}/reports")
     public ResponseEntity<ApiResponse<List<ReportResponse>>> getReportsByDecision(
-            @PathVariable String decisionId
+            @PathVariable String decisionId,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.debug("Fetching reports for decision: {}", decisionId);
-
-        List<ReportResponse> reports = reportService.getReportsByDecisionId(decisionId);
+        List<ReportResponse> reports = reportService.getReportsByDecisionId(decisionId, currentUser);
 
         ApiResponse<List<ReportResponse>> response = ApiResponse.<List<ReportResponse>>builder()
                 .success(true)
@@ -147,17 +136,17 @@ public class ReportController {
 
     /**
      * Delete a report.
+     * ADMIN: Can delete any report
+     * USER: Can only delete reports for decisions assigned to them
      *
      * DELETE /api/v1/report/{reportId}
-     *
-     * @param reportId report UUID
-     * @return success message
      */
     @DeleteMapping("/report/{reportId}")
     public ResponseEntity<ApiResponse<Void>> deleteReport(
             @PathVariable String reportId,
             @AuthenticationPrincipal User currentUser
-    ) {log.info("Deleting report: {} by user: {}", reportId, currentUser.getEmail());log.info("Deleting report: {}", reportId);
+    ) {
+        log.info("Deleting report: {} by user: {}", reportId, currentUser.getEmail());
 
         reportService.deleteReport(reportId, currentUser);
 
@@ -172,11 +161,10 @@ public class ReportController {
 
     /**
      * Submit a report (change status from DRAFT to SUBMITTED).
+     * ADMIN: Can submit any report
+     * USER: Can only submit reports for decisions assigned to them
      *
      * POST /api/v1/report/{reportId}/submit
-     *
-     * @param reportId report UUID
-     * @return updated report
      */
     @PostMapping("/report/{reportId}/submit")
     public ResponseEntity<ApiResponse<ReportResponse>> submitReport(
@@ -199,14 +187,12 @@ public class ReportController {
 
     /**
      * Approve a report (change status to APPROVED).
+     * ADMIN ONLY
      *
      * POST /api/v1/report/{reportId}/approve
-     *
-     * @param reportId report UUID
-     * @return updated report
      */
     @PostMapping("/report/{reportId}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")  // ⭐ Nur Admins
     public ResponseEntity<ApiResponse<ReportResponse>> approveReport(
             @PathVariable String reportId,
             @AuthenticationPrincipal User currentUser
@@ -227,14 +213,12 @@ public class ReportController {
 
     /**
      * Reject a report (change status to REJECTED).
+     * ADMIN ONLY
      *
      * POST /api/v1/report/{reportId}/reject
-     *
-     * @param reportId report UUID
-     * @return updated report
      */
     @PostMapping("/report/{reportId}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")  // ⭐ Nur Admins
     public ResponseEntity<ApiResponse<ReportResponse>> rejectReport(
             @PathVariable String reportId,
             @AuthenticationPrincipal User currentUser
