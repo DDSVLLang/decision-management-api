@@ -1,48 +1,65 @@
 package de.langen.beschlussservice.api.controller;
 
 import de.langen.beschlussservice.api.dto.request.CreateDecisionRequest;
-import de.langen.beschlussservice.api.dto.request.CreateReportRequest;
 import de.langen.beschlussservice.api.dto.request.SearchDecisionRequest;
 import de.langen.beschlussservice.api.dto.request.UpdateDecisionRequest;
 import de.langen.beschlussservice.api.dto.response.ApiResponse;
 import de.langen.beschlussservice.api.dto.response.DecisionResponse;
-import de.langen.beschlussservice.api.dto.response.ReportResponse;
 import de.langen.beschlussservice.application.service.DecisionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import de.langen.beschlussservice.domain.entity.User;
+
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/decision")
 @RequiredArgsConstructor
 @Tag(name = "Decision API", description = "Decision management endpoints")
+@Slf4j
 public class DecisionApiController {
 
     private final DecisionService decisionService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    //@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a new decision")
-    public ApiResponse<DecisionResponse> createDecision(
-            @Valid @RequestBody CreateDecisionRequest request
+    public ResponseEntity<ApiResponse<DecisionResponse>> createDecision(
+            @Valid @RequestBody CreateDecisionRequest request,
+            @AuthenticationPrincipal User currentUser
     ) {
-        DecisionResponse response = decisionService.createDecision(request);
-        return ApiResponse.success(response, "Decision created successfully");
+
+        log.info("Creating decision: {} by user: {}", request.getTitle(), currentUser.getEmail());
+
+        DecisionResponse decision  = decisionService.createDecision(request, currentUser);
+
+        ApiResponse<DecisionResponse> response = ApiResponse.<DecisionResponse>builder()
+                .success(true)
+                .message("Decision created successfully")
+                .data(decision)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
-    //@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get decision by ID")
     public ApiResponse<DecisionResponse> getDecision(@PathVariable String id) {
         DecisionResponse response = decisionService.getDecisionById(id);
@@ -50,7 +67,7 @@ public class DecisionApiController {
     }
 
     @GetMapping("/search")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Search decisions with filters and pagination")
     public ApiResponse<Page<DecisionResponse>> searchDecisions(
             @RequestParam(required = false) String status,
@@ -94,19 +111,29 @@ public class DecisionApiController {
     }
 
     @PutMapping("/{id}")
-    //@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Update decision")
-    public ApiResponse<DecisionResponse> updateDecision(
+    public ResponseEntity<ApiResponse<DecisionResponse>> updateDecision(
             @PathVariable String id,
-            @Valid @RequestBody UpdateDecisionRequest request
+            @Valid @RequestBody UpdateDecisionRequest request,
+            @AuthenticationPrincipal User currentUser
     ) {
-        DecisionResponse response = decisionService.updateDecision(id, request);
-        return ApiResponse.success(response, "Decision updated successfully");
+
+        log.info("Updating decision: {} by user: {}", id, currentUser.getEmail());
+        DecisionResponse decision  = decisionService.updateDecision(id, request, currentUser);
+        ApiResponse<DecisionResponse> response = ApiResponse.<DecisionResponse>builder()
+                .success(true)
+                .message("Decision updated successfully")
+                .data(decision)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    //@PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete decision (soft delete)")
     public void deleteDecision(@PathVariable String id) {
         decisionService.deleteDecision(id);

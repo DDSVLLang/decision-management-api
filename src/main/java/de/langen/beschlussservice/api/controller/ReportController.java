@@ -10,7 +10,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import de.langen.beschlussservice.domain.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,14 +46,15 @@ public class ReportController {
     @PostMapping("/decision/{decisionId}/report")
     public ResponseEntity<ApiResponse<ReportResponse>> createReport(
             @PathVariable String decisionId,
-            @Valid @RequestBody CreateReportRequest request
+            @Valid @RequestBody CreateReportRequest request,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.info("Creating report for decision: {}", decisionId);
+        log.info("Creating report for decision: {} by user: {}", decisionId, currentUser.getEmail());
 
         // TODO: Get actual user email from Security Context
         String creatorEmail = "admin@stadt-langen.de"; // Placeholder
 
-        ReportResponse report = reportService.createReport(decisionId, request, creatorEmail);
+        ReportResponse report = reportService.createReport(decisionId, request, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
                 .success(true)
@@ -73,11 +78,12 @@ public class ReportController {
     @PutMapping("/report/{reportId}")
     public ResponseEntity<ApiResponse<ReportResponse>> updateReport(
             @PathVariable String reportId,
-            @Valid @RequestBody UpdateReportRequest request
+            @Valid @RequestBody UpdateReportRequest request,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.info("Updating report: {}", reportId);
+        log.info("Updating report: {} by user: {}", reportId, currentUser.getEmail());
 
-        ReportResponse report = reportService.updateReport(reportId, request);
+        ReportResponse report = reportService.updateReport(reportId, request, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
                 .success(true)
@@ -149,11 +155,11 @@ public class ReportController {
      */
     @DeleteMapping("/report/{reportId}")
     public ResponseEntity<ApiResponse<Void>> deleteReport(
-            @PathVariable String reportId
-    ) {
-        log.info("Deleting report: {}", reportId);
+            @PathVariable String reportId,
+            @AuthenticationPrincipal User currentUser
+    ) {log.info("Deleting report: {} by user: {}", reportId, currentUser.getEmail());log.info("Deleting report: {}", reportId);
 
-        reportService.deleteReport(reportId);
+        reportService.deleteReport(reportId, currentUser);
 
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
@@ -174,11 +180,12 @@ public class ReportController {
      */
     @PostMapping("/report/{reportId}/submit")
     public ResponseEntity<ApiResponse<ReportResponse>> submitReport(
-            @PathVariable String reportId
+            @PathVariable String reportId,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.info("Submitting report: {}", reportId);
+        log.info("Submitting report: {} by user: {}", reportId, currentUser.getEmail());
 
-        ReportResponse report = reportService.submitReport(reportId);
+        ReportResponse report = reportService.submitReport(reportId, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
                 .success(true)
@@ -199,12 +206,14 @@ public class ReportController {
      * @return updated report
      */
     @PostMapping("/report/{reportId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ReportResponse>> approveReport(
-            @PathVariable String reportId
+            @PathVariable String reportId,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.info("Approving report: {}", reportId);
+        log.info("Approving report: {} by admin: {}", reportId, currentUser.getEmail());
 
-        ReportResponse report = reportService.approveReport(reportId);
+        ReportResponse report = reportService.approveReport(reportId, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
                 .success(true)
@@ -225,12 +234,14 @@ public class ReportController {
      * @return updated report
      */
     @PostMapping("/report/{reportId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ReportResponse>> rejectReport(
-            @PathVariable String reportId
+            @PathVariable String reportId,
+            @AuthenticationPrincipal User currentUser
     ) {
-        log.info("Rejecting report: {}", reportId);
+        log.info("Rejecting report: {} by admin: {}", reportId, currentUser.getEmail());
 
-        ReportResponse report = reportService.rejectReport(reportId);
+        ReportResponse report = reportService.rejectReport(reportId, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
                 .success(true)

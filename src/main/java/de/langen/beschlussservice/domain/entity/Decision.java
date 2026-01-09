@@ -104,6 +104,9 @@ public class Decision {
     @Column(name = "completed_by")
     private UUID completedBy;
 
+    @Column(name = "updated_by")
+    private UUID updatedBy;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 

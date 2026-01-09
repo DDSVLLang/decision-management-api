@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * Handles CRUD operations and status transitions for reports.
  *
  * @author Backend Team
- * @version 2.0
+ * @version 2.1 - Added User tracking
  */
 @Service
 @RequiredArgsConstructor
@@ -39,27 +39,22 @@ public class ReportService {
     private final ReportMapper reportMapper;
 
     /**
-     * Create a new report for a decision.
+     * Create a new report for a decision with authenticated user.
      *
      * @param decisionId decision UUID
      * @param request report data
-     * @param creatorEmail email of creator (from security context)
+     * @param currentUser authenticated user
      * @return created report
      */
     @Transactional
-    public ReportResponse createReport(String decisionId, CreateReportRequest request, String creatorEmail) {
-        log.info("Creating report for decisionId={} and year={}", decisionId, request.getYear());
+    public ReportResponse createReport(String decisionId, CreateReportRequest request, User currentUser) {
+        log.info("Creating report for decisionId={} and year={} by user: {}",
+                decisionId, request.getYear(), currentUser.getEmail());
 
         // Find decision
         Decision decision = decisionRepository.findById(UUID.fromString(decisionId))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Decision not found with id: " + decisionId));
-
-        // Find creator user
-        User createdByUser = null;
-        if (creatorEmail != null && !creatorEmail.isBlank()) {
-            createdByUser = userRepository.findByEmail(creatorEmail).orElse(null);
-        }
 
         // Check if report for this year already exists
         boolean exists = reportRepository.existsByDecisionIdAndYear(
@@ -76,10 +71,7 @@ public class ReportService {
         // Map to entity
         Report report = reportMapper.toEntity(request);
         report.setDecision(decision);
-
-        if (createdByUser != null) {
-            report.setCreatedBy(createdByUser.getId());
-        }
+        report.setCreatedBy(currentUser.getId());
 
         // Save
         Report saved = reportRepository.save(report);
@@ -87,20 +79,21 @@ public class ReportService {
         // Keep bidirectional association in sync
         decision.addReport(saved);
 
-        log.info("Report created with id: {}", saved.getId());
-        return reportMapper.toResponse(saved, createdByUser);
+        log.info("Report created with id: {} by user: {}", saved.getId(), currentUser.getEmail());
+        return reportMapper.toResponse(saved, currentUser);
     }
 
     /**
-     * Update an existing report.
+     * Update an existing report with authenticated user.
      *
      * @param reportId report UUID
      * @param request update data
+     * @param currentUser authenticated user (for audit)
      * @return updated report
      */
     @Transactional
-    public ReportResponse updateReport(String reportId, UpdateReportRequest request) {
-        log.info("Updating report with id: {}", reportId);
+    public ReportResponse updateReport(String reportId, UpdateReportRequest request, User currentUser) {
+        log.info("Updating report with id: {} by user: {}", reportId, currentUser.getEmail());
 
         Report report = reportRepository.findById(UUID.fromString(reportId))
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + reportId));
@@ -188,7 +181,7 @@ public class ReportService {
                 UUID.fromString(decisionId)
         );
 
-        // Map to responses (without loading all users - could be optimized)
+        // Map to responses
         return reports.stream()
                 .map(report -> {
                     User createdByUser = report.getCreatedBy() != null
@@ -203,10 +196,11 @@ public class ReportService {
      * Delete a report.
      *
      * @param reportId report UUID
+     * @param currentUser authenticated user (for audit)
      */
     @Transactional
-    public void deleteReport(String reportId) {
-        log.info("Deleting report with id: {}", reportId);
+    public void deleteReport(String reportId, User currentUser) {
+        log.info("Deleting report with id: {} by user: {}", reportId, currentUser.getEmail());
 
         Report report = reportRepository.findById(UUID.fromString(reportId))
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + reportId));
@@ -218,11 +212,12 @@ public class ReportService {
      * Submit a report (DRAFT → SUBMITTED).
      *
      * @param reportId report UUID
+     * @param currentUser authenticated user (for audit)
      * @return updated report
      */
     @Transactional
-    public ReportResponse submitReport(String reportId) {
-        log.info("Submitting report with id: {}", reportId);
+    public ReportResponse submitReport(String reportId, User currentUser) {
+        log.info("Submitting report with id: {} by user: {}", reportId, currentUser.getEmail());
 
         Report report = reportRepository.findById(UUID.fromString(reportId))
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + reportId));
@@ -243,11 +238,12 @@ public class ReportService {
      * Approve a report (SUBMITTED → APPROVED).
      *
      * @param reportId report UUID
+     * @param currentUser authenticated user (must be admin)
      * @return updated report
      */
     @Transactional
-    public ReportResponse approveReport(String reportId) {
-        log.info("Approving report with id: {}", reportId);
+    public ReportResponse approveReport(String reportId, User currentUser) {
+        log.info("Approving report with id: {} by user: {}", reportId, currentUser.getEmail());
 
         Report report = reportRepository.findById(UUID.fromString(reportId))
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + reportId));
@@ -268,11 +264,12 @@ public class ReportService {
      * Reject a report (any status → REJECTED).
      *
      * @param reportId report UUID
+     * @param currentUser authenticated user (must be admin)
      * @return updated report
      */
     @Transactional
-    public ReportResponse rejectReport(String reportId) {
-        log.info("Rejecting report with id: {}", reportId);
+    public ReportResponse rejectReport(String reportId, User currentUser) {
+        log.info("Rejecting report with id: {} by user: {}", reportId, currentUser.getEmail());
 
         Report report = reportRepository.findById(UUID.fromString(reportId))
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + reportId));

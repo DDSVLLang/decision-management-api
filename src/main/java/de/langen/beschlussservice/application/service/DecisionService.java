@@ -28,7 +28,7 @@ import java.util.UUID;
  * Handles business logic and entity relationship management.
  *
  * @author Backend Team
- * @version 2.0
+ * @version 2.1 - Added User tracking
  */
 @Service
 @RequiredArgsConstructor
@@ -44,12 +44,23 @@ public class DecisionService {
     private final ReportRepository reportRepository;
     private final ReportMapper reportMapper;
 
+    /**
+     * Create a new decision with authenticated user.
+     *
+     * @param request decision data
+     * @param currentUser authenticated user
+     * @return created decision
+     */
     @Transactional
-    public DecisionResponse createDecision(CreateDecisionRequest request) {
-        log.info("Creating new decision: {}", request.getTitle());
+    public DecisionResponse createDecision(CreateDecisionRequest request, User currentUser) {
+        log.info("Creating new decision: {} by user: {}", request.getTitle(), currentUser.getEmail());
 
         // Mapper handles String → Entity conversion via repositories
         Decision decision = decisionMapper.toEntity(request);
+
+        // Set created by from authenticated user
+        decision.setCreatedBy(currentUser.getId());
+
         var savedDecision = decisionRepository.save(decision);
 
         log.info("Decision created with id: {}", savedDecision.getId());
@@ -90,9 +101,17 @@ public class DecisionService {
         return decisions.map(d -> decisionMapper.toResponse(d, null));
     }
 
+    /**
+     * Update an existing decision with authenticated user.
+     *
+     * @param id decision ID
+     * @param request update data
+     * @param currentUser authenticated user
+     * @return updated decision
+     */
     @Transactional
-    public DecisionResponse updateDecision(String id, UpdateDecisionRequest request) {
-        log.info("Updating decision with id: {}", id);
+    public DecisionResponse updateDecision(String id, UpdateDecisionRequest request, User currentUser) {
+        log.info("Updating decision with id: {} by user: {}", id, currentUser.getEmail());
 
         Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
@@ -103,11 +122,16 @@ public class DecisionService {
         }
 
         if (request.getStatus() != null) {
-            decision.setStatus(
-                    DecisionStatus.valueOf(
-                            request.getStatus().toUpperCase().replace("-", "_")
-                    )
+            DecisionStatus newStatus = DecisionStatus.valueOf(
+                    request.getStatus().toUpperCase().replace("-", "_")
             );
+
+            // If marking as completed, set completed by and completed at
+            if (newStatus == DecisionStatus.COMPLETED) {
+                decision.markAsCompleted(currentUser.getId());
+            } else {
+                decision.setStatus(newStatus);
+            }
         }
 
         if (request.getPriority() != null) {
@@ -174,11 +198,17 @@ public class DecisionService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "User not found with id: " + request.getAssigneeId()
                     ));
-            decision.setAssignee(assignee);
+            decision.assignTo(assignee);
         }
 
         Decision updatedDecision = decisionRepository.save(decision);
-        return decisionMapper.toResponse(updatedDecision, null);
+
+        // Load completedBy user if exists
+        User completedByUser = decision.getCompletedBy() != null
+                ? userRepository.findById(decision.getCompletedBy()).orElse(null)
+                : null;
+
+        return decisionMapper.toResponse(updatedDecision, completedByUser);
     }
 
     @Transactional
@@ -191,35 +221,33 @@ public class DecisionService {
         decisionRepository.delete(decision); // Triggers soft delete
     }
 
+    /**
+     * Create a report for a decision with authenticated user.
+     *
+     * @param decisionId decision UUID
+     * @param request report data
+     * @param currentUser authenticated user
+     * @return created report
+     */
     @Transactional
-    public ReportResponse createReport(String decisionId,
-                                       CreateReportRequest request,
-                                       String creatorEmail) {
-
-        log.info("Creating report for decisionId={} and year={}", decisionId, request.getYear());
+    public ReportResponse createReport(String decisionId, CreateReportRequest request, User currentUser) {
+        log.info("Creating report for decisionId={} and year={} by user: {}",
+                decisionId, request.getYear(), currentUser.getEmail());
 
         Decision decision = decisionRepository.findById(UUID.fromString(decisionId))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Decision not found with id: " + decisionId));
 
-        User createdByUser = null;
-        if (creatorEmail != null && !creatorEmail.isBlank()) {
-            createdByUser = userRepository.findByEmail(creatorEmail).orElse(null);
-        }
-
         Report report = reportMapper.toEntity(request);
         report.setDecision(decision);
-
-        if (createdByUser != null) {
-            report.setCreatedBy(createdByUser.getId());
-        }
+        report.setCreatedBy(currentUser.getId());
 
         Report saved = reportRepository.save(report);
 
         // keep bidirectional association in sync (optional but nice for aggregates)
         decision.addReport(saved);
 
-        return reportMapper.toResponse(saved, createdByUser);
+        return reportMapper.toResponse(saved, currentUser);
     }
 
     private LocalDate parseDate(String dateStr) {
