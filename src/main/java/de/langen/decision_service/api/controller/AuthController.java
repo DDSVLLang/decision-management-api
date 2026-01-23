@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -43,16 +44,22 @@ public class AuthController {
     ) {
         log.info("Login request for email: {}", request.getEmail());
 
-        AuthResponse authResponse = authService.login(request);
+        try {
+            AuthResponse authResponse = authService.login(request);
 
-        ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
-                .success(true)
-                .message("Login successful")
-                .data(authResponse)
-                .timestamp(LocalDateTime.now())
-                .build();
+            ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
+                    .success(true)
+                    .message("Login successful")
+                    .data(authResponse)
+                    .timestamp(LocalDateTime.now())
+                    .build();
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+
+        } catch (BadCredentialsException e) {
+            log.warn("Login error:  {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
     }
 
     /**
@@ -64,21 +71,32 @@ public class AuthController {
      * @return authentication response with token
      */
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(
+    public ResponseEntity<ApiResponse<?>> register(
             @Valid @RequestBody RegisterRequest request
     ) {
         log.info("Registration request for email: {}", request.getEmail());
 
-        AuthResponse authResponse = authService.register(request);
+        try {
+            AuthResponse authResponse = authService.register(request);
 
-        ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
-                .success(true)
-                .message("Registration successful")
-                .data(authResponse)
-                .timestamp(LocalDateTime.now())
-                .build();
+            ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
+                    .success(true)
+                    .message("Registration successful")
+                    .data(authResponse)
+                    .timestamp(LocalDateTime.now())
+                    .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            log.warn("Registration error: {}", e.getMessage());
+            ApiResponse<Object> errorResponse = ApiResponse.builder()
+                    .message("Email is already registered")
+                    .success(false)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        }
     }
 
     /**

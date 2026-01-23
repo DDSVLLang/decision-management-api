@@ -8,41 +8,47 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
-
-    private boolean success;
+    private Boolean success;
     private String message;
     private T data;
-    private Object metadata;
+    private LocalDateTime timestamp;
 
-    @Builder.Default
-    private LocalDateTime timestamp = LocalDateTime.now();
-
-    public static <T> ApiResponse<T> success(T data) {
-        return ApiResponse.<T>builder()
-                .success(true)
-                .data(data)
-                .build();
-    }
-
+    // Utility methods for success responses
     public static <T> ApiResponse<T> success(T data, String message) {
         return ApiResponse.<T>builder()
                 .success(true)
                 .message(message)
                 .data(data)
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message) {
-        return ApiResponse.<T>builder()
+    public static <T> ApiResponse<T> success(T data) {
+        return success(data, null);
+    }
+
+    // Utility methods for error responses
+    public static ApiResponse<Object> error(String message) {
+        return ApiResponse.builder()
                 .success(false)
                 .message(message)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    public static ApiResponse<Object> error(String message, Object data) {
+        return ApiResponse.builder()
+                .success(false)
+                .message(message)
+                .data(data)
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 }
-
