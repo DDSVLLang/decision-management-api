@@ -81,22 +81,27 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         log.info("Registration attempt for email: {}", request.getEmail());
 
+        // Validate mandatory fields
+        validateMandatoryFields(request);
+
+
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already registered");
         }
 
-        // Create new user
+        // Create a new user with mandatory fields
         User user = User.builder()
-                .email(request.getEmail())
+                .email(request.getEmail().trim().toLowerCase()) // Normalize email
                 .password(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .role(parseRole(request.getRole()))
+                .firstName(request.getFirstName().trim())
+                .lastName(request.getLastName().trim())
+                .role(parseRoleWithDefault(request.getRole()))
                 .responsibleDepartment(request.getResponsibleDepartment())
                 .description(request.getDescription())
                 .active(true)
                 .build();
+
 
         User savedUser = userRepository.save(user);
 
@@ -257,4 +262,49 @@ public class AuthService {
         }
         return UserRole.valueOf(role.toUpperCase());
     }
+
+    /**
+     * Validate mandatory fields for user creation.
+     *
+     * @param request registration request
+     * @throws IllegalArgumentException if mandatory fields are missing
+     */
+    private void validateMandatoryFields(RegisterRequest request) {
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is mandatory");
+        }
+        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+            throw new IllegalArgumentException("Password is mandatory");
+        }
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            throw new IllegalArgumentException("First name is mandatory");
+        }
+        if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name is mandatory");
+        }
+    }
+
+    /**
+     * Parse role string to enum with USER as default.
+     * Ensures role is always set for user creation.
+     *
+     * @param role role string (can be null or empty)
+     * @return user role enum, defaults to USER
+     */
+    private UserRole parseRoleWithDefault(String role) {
+        if (role == null || role.trim().isEmpty()) {
+            log.debug("No role provided, defaulting to USER");
+            return UserRole.USER; // Default role
+        }
+
+        try {
+            UserRole parsedRole = UserRole.valueOf(role.trim().toUpperCase());
+            log.debug("Role set to: {}", parsedRole.getValue());
+            return parsedRole;
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid role '{}' provided, defaulting to USER", role);
+            return UserRole.USER; // Fallback to default
+        }
+    }
+
 }
