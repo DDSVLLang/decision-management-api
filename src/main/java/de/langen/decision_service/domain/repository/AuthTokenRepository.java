@@ -14,7 +14,7 @@ import java.util.UUID;
 /**
  * Repository for AuthToken entity.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 1.0
  */
 @Repository

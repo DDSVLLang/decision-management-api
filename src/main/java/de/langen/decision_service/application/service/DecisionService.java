@@ -28,7 +28,7 @@ import java.util.UUID;
  * - ADMIN: Can create, update, view all, assign decisions
  * - USER: Can only view decisions assigned to them
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 3.0 - Added RBAC
  */
 @Service

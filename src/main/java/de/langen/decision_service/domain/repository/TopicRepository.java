@@ -12,7 +12,7 @@ import java.util.UUID;
 /**
  * Repository for Topic entity operations.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Repository

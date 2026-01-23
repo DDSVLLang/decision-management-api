@@ -11,7 +11,7 @@ import java.util.UUID;
 /**
  * Response DTO for Report entity.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Data

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * - ADMIN: Can view/create/update/delete/approve/reject all reports
  * - USER: Can only view/create/update/submit reports for decisions assigned to them
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 3.0 - Added RBAC
  */
 @Service

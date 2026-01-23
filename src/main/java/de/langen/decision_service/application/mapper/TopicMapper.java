@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * MapStruct mapper for Topic entity.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Mapper(

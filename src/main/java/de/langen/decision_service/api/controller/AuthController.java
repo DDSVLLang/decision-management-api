@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * REST Controller for Authentication.
  * Handles login, registration, and logout.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 1.0
  */
 @RestController

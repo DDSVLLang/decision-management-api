@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 /**
  * Request DTO for creating a new Topic.
  * 
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Data

@@ -20,7 +20,7 @@ import java.io.IOException;
  * Token Authentication Filter.
  * Validates Bearer token in Authorization header and sets authentication.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 1.0
  */
 @Component

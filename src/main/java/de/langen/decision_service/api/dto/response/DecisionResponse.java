@@ -12,7 +12,7 @@ import java.util.UUID;
 /**
  * Response DTO for Decision entity.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Data

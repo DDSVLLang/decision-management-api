@@ -20,7 +20,7 @@ import java.util.UUID;
  * MapStruct mapper for Decision entity.
  * Uses @AfterMapping for complex entity-to-string conversions.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Mapper(

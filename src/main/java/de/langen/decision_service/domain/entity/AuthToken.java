@@ -14,7 +14,7 @@ import java.util.UUID;
  * Authentication Token entity.
  * Stores UUID-based authentication tokens for users.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 1.0
  */
 @Entity

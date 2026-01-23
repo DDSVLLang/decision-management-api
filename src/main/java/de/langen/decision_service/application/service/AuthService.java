@@ -23,7 +23,7 @@ import java.util.UUID;
  * Authentication Service.
  * Handles user login, registration, and token management.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 1.0
  */
 @Service

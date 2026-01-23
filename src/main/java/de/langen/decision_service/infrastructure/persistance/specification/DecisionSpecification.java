@@ -16,7 +16,7 @@ import java.util.List;
  * Specification for dynamic Decision queries with filters.
  * Works with Entity relationships (FK joins).
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.1
  */
 public class DecisionSpecification {

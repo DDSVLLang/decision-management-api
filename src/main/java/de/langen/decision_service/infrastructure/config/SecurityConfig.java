@@ -23,7 +23,7 @@ import java.util.List;
  * Security Configuration.
  * Configures authentication, authorization, and CORS.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 1.0
  */
 @Configuration

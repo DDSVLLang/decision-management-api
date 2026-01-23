@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
  * Request DTO for updating an existing Decision.
  * All fields are optional.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Data

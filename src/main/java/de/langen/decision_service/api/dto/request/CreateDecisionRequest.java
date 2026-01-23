@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 /**
  * Request DTO for creating a new Decision.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Data

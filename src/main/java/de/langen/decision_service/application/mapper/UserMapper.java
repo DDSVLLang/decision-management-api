@@ -15,7 +15,7 @@ import java.util.List;
  * MapStruct mapper for User entity.
  * Note: Password handling is done separately for security.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Mapper(
