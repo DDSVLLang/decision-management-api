@@ -22,6 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import de.langen.decision_service.domain.entity.User;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/decision")
@@ -46,6 +47,15 @@ public class DecisionApiController {
             @Valid @RequestBody CreateDecisionRequest request,
             @AuthenticationPrincipal User currentUser
     ) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found");
+            ApiResponse<DecisionResponse> errorResponse = ApiResponse.<DecisionResponse>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
 
         log.info("Creating decision: {} by user: {}", request.getTitle(), currentUser.getEmail());
 
@@ -71,6 +81,16 @@ public class DecisionApiController {
     @GetMapping("/{id}")
     @Operation(summary = "Get decision by ID")
     public ResponseEntity<ApiResponse<DecisionResponse>> getDecision(@PathVariable String id, @AuthenticationPrincipal User currentUser) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found for decision ID: {}", id);
+            ApiResponse<DecisionResponse> errorResponse = ApiResponse.<DecisionResponse>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
         DecisionResponse decision = decisionService.getDecisionById(id, currentUser);
         ApiResponse<DecisionResponse> response = ApiResponse.<DecisionResponse>builder()
                 .success(true)
@@ -96,6 +116,16 @@ public class DecisionApiController {
             @AuthenticationPrincipal User currentUser
 
     ) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found for search");
+            ApiResponse<Page<DecisionResponse>> errorResponse = ApiResponse.<Page<DecisionResponse>>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+        
         log.debug("Searching decisions by user: {} (role: {})",
                 currentUser.getEmail(), currentUser.getRole());
 
@@ -128,6 +158,15 @@ public class DecisionApiController {
             @Valid @RequestBody UpdateDecisionRequest request,
             @AuthenticationPrincipal User currentUser
     ) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found for update of decision ID: {}", id);
+            ApiResponse<DecisionResponse> errorResponse = ApiResponse.<DecisionResponse>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
 
         log.info("Updating decision: {} by admin: {}", id, currentUser.getEmail());
 
@@ -154,6 +193,16 @@ public class DecisionApiController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete decision (soft delete)")
     public ResponseEntity<ApiResponse<Void>> deleteDecision(@PathVariable String id, @AuthenticationPrincipal User currentUser) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found for deletion of decision ID: {}", id);
+            ApiResponse<Void> errorResponse = ApiResponse.<Void>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
         log.info("Deleting decision: {} by admin: {}", id, currentUser.getEmail());
 
         decisionService.deleteDecision(id, currentUser);
@@ -177,6 +226,16 @@ public class DecisionApiController {
             Pageable pageable,
             @AuthenticationPrincipal User currentUser
     ) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found for my-assignments");
+            ApiResponse<Page<DecisionResponse>> errorResponse = ApiResponse.<Page<DecisionResponse>>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
         log.info("Fetching assignments for user: {}", currentUser.getEmail());
 
         Page<DecisionResponse> decisions = decisionService.getAssignedDecisions(
@@ -207,6 +266,16 @@ public class DecisionApiController {
             Pageable pageable,
             @AuthenticationPrincipal User currentUser
     ) {
+        if (Objects.isNull(currentUser)) {
+            log.error("Unauthorized access attempt - no current user found for user assignments of userId: {}", userId);
+            ApiResponse<Page<DecisionResponse>> errorResponse = ApiResponse.<Page<DecisionResponse>>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
         Page<DecisionResponse> decisions = decisionService.getAssignedDecisions(
                 userId,
                 pageable,
@@ -221,7 +290,4 @@ public class DecisionApiController {
 
         return ResponseEntity.ok(response);
     }
-
-
 }
-
