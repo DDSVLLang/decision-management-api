@@ -135,6 +135,11 @@ public class DecisionApiController {
                 currentUser
         );
 
+        if (decisions.isEmpty()) {
+            log.debug("No decisions found for user: {} with search criteria", currentUser.getEmail());
+            return ResponseEntity.noContent().build();
+        }
+
         ApiResponse<Page<DecisionResponse>> response = ApiResponse.<Page<DecisionResponse>>builder()
                 .success(true)
                 .data(decisions)
@@ -244,6 +249,11 @@ public class DecisionApiController {
                 currentUser
         );
 
+        if (decisions.isEmpty()) {
+            log.debug("No decisions found for current user: {}.", currentUser.getEmail());
+            return ResponseEntity.noContent().build();
+        }
+
         ApiResponse<Page<DecisionResponse>> response = ApiResponse.<Page<DecisionResponse>>builder()
                 .success(true)
                 .data(decisions)
@@ -281,6 +291,11 @@ public class DecisionApiController {
                 pageable,
                 currentUser
         );
+
+        if (decisions.isEmpty()) {
+            log.debug("No decisions found for user: {}.", currentUser.getEmail());
+            return ResponseEntity.noContent().build();
+        }
 
         ApiResponse<Page<DecisionResponse>> response = ApiResponse.<Page<DecisionResponse>>builder()
                 .success(true)
