@@ -3,6 +3,7 @@ package de.langen.decision_service.api.controller;
 import de.langen.decision_service.api.dto.request.CreateReportRequest;
 import de.langen.decision_service.api.dto.request.UpdateReportRequest;
 import de.langen.decision_service.api.dto.response.ApiResponse;
+import de.langen.decision_service.api.dto.response.DecisionResponse;
 import de.langen.decision_service.api.dto.response.ReportResponse;
 import de.langen.decision_service.application.service.ReportService;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ import de.langen.decision_service.domain.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * REST Controller for Report operations.
@@ -42,23 +44,33 @@ public class ReportController {
      * POST /api/v1/decision/{decisionId}/report
      */
     @PostMapping("/decision/{decisionId}/report")
-    public ResponseEntity<ApiResponse<ReportResponse>> createReport(
+    public ResponseEntity<ApiResponse<?>> createReport(
             @PathVariable String decisionId,
             @Valid @RequestBody CreateReportRequest request,
             @AuthenticationPrincipal User currentUser
     ) {
         log.info("Creating report for decision: {} by user: {}", decisionId, currentUser.getEmail());
 
-        ReportResponse report = reportService.createReport(decisionId, request, currentUser);
+        try {
+            ReportResponse report = reportService.createReport(decisionId, request, currentUser);
 
-        ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
-                .success(true)
-                .message("Report created successfully")
-                .data(report)
-                .timestamp(LocalDateTime.now())
-                .build();
+            ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
+                    .success(true)
+                    .message("Report created successfully")
+                    .data(report)
+                    .timestamp(LocalDateTime.now())
+                    .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            ApiResponse<Object> errorResponse = ApiResponse.builder()
+                    .message(e.getMessage())
+                    .success(false)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        }
     }
 
     /**
@@ -123,6 +135,16 @@ public class ReportController {
             @PathVariable String decisionId,
             @AuthenticationPrincipal User currentUser
     ) {
+
+        if (Objects.isNull(currentUser)) {
+            ApiResponse<List<ReportResponse>> errorResponse = ApiResponse.<List<ReportResponse>>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
         List<ReportResponse> reports = reportService.getReportsByDecisionId(decisionId, currentUser);
 
         ApiResponse<List<ReportResponse>> response = ApiResponse.<List<ReportResponse>>builder()
