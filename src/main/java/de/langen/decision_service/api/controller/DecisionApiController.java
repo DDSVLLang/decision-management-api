@@ -222,7 +222,7 @@ public class DecisionApiController {
     }
 
     /**
-     * Get all decisions assigned to current user.
+     * Get all decisions assigned to the current user.
      *
      * GET /api/v1/decision/my-assignments
      */
@@ -271,6 +271,7 @@ public class DecisionApiController {
      * GET /api/v1/decision/assignments/{userId}
      */
     @GetMapping("/assignments/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Page<DecisionResponse>>> getUserAssignments(
             @PathVariable String userId,
             Pageable pageable,
