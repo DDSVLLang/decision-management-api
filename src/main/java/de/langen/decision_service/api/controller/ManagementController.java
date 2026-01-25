@@ -310,6 +310,104 @@ public class ManagementController {
                         .build()
         );
     }
+    /**
+     * Get committee by ID.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/committee/{id}
+     */
+    @GetMapping("/committee/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get committee by ID")
+    public ResponseEntity<ApiResponse<CommitteeResponse>> getCommitteeById(@PathVariable String id) {
+        log.debug("GET /api/v1/management/committee/{}", id);
+
+        CommitteeResponse committee = managementService.getCommitteeById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<CommitteeResponse>builder()
+                        .success(true)
+                        .data(committee)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Create a new committee.
+     * ADMIN ONLY
+     *
+     * POST /api/v1/management/committee
+     */
+    @PostMapping("/committee")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create a new committee")
+    public ResponseEntity<ApiResponse<CommitteeResponse>> createCommittee(
+            @Valid @RequestBody CreateCommitteeRequest request
+    ) {
+        log.info("POST /api/v1/management/committee - name: {}", request.getName());
+
+        CommitteeResponse committee = managementService.createCommittee(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<CommitteeResponse>builder()
+                        .success(true)
+                        .message("Committee created successfully")
+                        .data(committee)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Update an existing committee.
+     * ADMIN ONLY
+     *
+     * PUT /api/v1/management/committee/{id}
+     */
+    @PutMapping("/committee/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update an existing committee")
+    public ResponseEntity<ApiResponse<CommitteeResponse>> updateCommittee(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateCommitteeRequest request
+    ) {
+        log.info("PUT /api/v1/management/committee/{}", id);
+
+        CommitteeResponse committee = managementService.updateCommittee(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<CommitteeResponse>builder()
+                        .success(true)
+                        .message("Committee updated successfully")
+                        .data(committee)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Delete a committee.
+     * ADMIN ONLY
+     *
+     * DELETE /api/v1/management/committee/{id}
+     */
+    @DeleteMapping("/committee/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete a committee")
+    public ResponseEntity<ApiResponse<Void>> deleteCommittee(@PathVariable String id) {
+        log.info("DELETE /api/v1/management/committee/{}", id);
+
+        managementService.deleteCommittee(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .success(true)
+                        .message("Committee deleted successfully")
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
 
     // =========================================================================
     // User Endpoints (Read-Only)

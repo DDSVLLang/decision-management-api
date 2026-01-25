@@ -1,9 +1,6 @@
 package de.langen.decision_service.application.service;
 
-import de.langen.decision_service.api.dto.request.CreateDepartmentRequest;
-import de.langen.decision_service.api.dto.request.CreateTopicRequest;
-import de.langen.decision_service.api.dto.request.UpdateDepartmentRequest;
-import de.langen.decision_service.api.dto.request.UpdateTopicRequest;
+import de.langen.decision_service.api.dto.request.*;
 import de.langen.decision_service.api.dto.response.*;
 import de.langen.decision_service.api.exception.ResourceNotFoundException;
 import de.langen.decision_service.domain.entity.*;
@@ -291,6 +288,139 @@ public class ManagementService {
         return committeeRepository.findAll().stream()
                 .map(this::mapCommitteeToResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Get committee by ID.
+     *
+     * @param id committee UUID
+     * @return committee
+     */
+    @Transactional(readOnly = true)
+    public CommitteeResponse getCommitteeById(String id) {
+        log.debug("Fetching committee with id: {}", id);
+
+        Committee committee = committeeRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Committee not found with id: " + id));
+
+        return mapCommitteeToResponse(committee);
+    }
+
+    /**
+     * Create a new committee.
+     * ADMIN ONLY
+     *
+     * @param request committee data
+     * @return created committee
+     */
+    @Transactional
+    public CommitteeResponse createCommittee(CreateCommitteeRequest request) {
+        log.info("Creating new committee: {}", request.getName());
+
+        // Check if committee with same name already exists
+        if (committeeRepository.findByName(request.getName()).isPresent()) {
+            throw new IllegalArgumentException("Committee with name '" + request.getName() + "' already exists");
+        }
+
+        // Check if shortName is provided and unique
+        if (request.getShortName() != null && !request.getShortName().isBlank()) {
+            if (committeeRepository.findByShortName(request.getShortName()).isPresent()) {
+                throw new IllegalArgumentException(
+                        "Committee with short name '" + request.getShortName() + "' already exists"
+                );
+            }
+        }
+
+        Committee committee = Committee.builder()
+                .name(request.getName())
+                .shortName(request.getShortName())
+                .description(request.getDescription())
+                .build();
+
+        Committee savedCommittee = committeeRepository.save(committee);
+        log.info("Committee created with id: {}", savedCommittee.getId());
+
+        return mapCommitteeToResponse(savedCommittee);
+    }
+
+    /**
+     * Update an existing committee.
+     * ADMIN ONLY
+     *
+     * @param id committee UUID
+     * @param request update data
+     * @return updated committee
+     */
+    @Transactional
+    public CommitteeResponse updateCommittee(String id, UpdateCommitteeRequest request) {
+        log.info("Updating committee with id: {}", id);
+
+        Committee committee = committeeRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Committee not found with id: " + id));
+
+        // Update name if provided
+        if (request.getName() != null && !request.getName().isBlank()) {
+            // Check if new name conflicts with existing committee
+            committeeRepository.findByName(request.getName())
+                    .ifPresent(existingCommittee -> {
+                        if (!existingCommittee.getId().equals(committee.getId())) {
+                            throw new IllegalArgumentException(
+                                    "Committee with name '" + request.getName() + "' already exists"
+                            );
+                        }
+                    });
+            committee.setName(request.getName());
+        }
+
+        // Update shortName if provided
+        if (request.getShortName() != null && !request.getShortName().isBlank()) {
+            // Check if new shortName conflicts with existing committee
+            committeeRepository.findByShortName(request.getShortName())
+                    .ifPresent(existingCommittee -> {
+                        if (!existingCommittee.getId().equals(committee.getId())) {
+                            throw new IllegalArgumentException(
+                                    "Committee with short name '" + request.getShortName() + "' already exists"
+                            );
+                        }
+                    });
+            committee.setShortName(request.getShortName());
+        }
+
+        // Update description if provided
+        if (request.getDescription() != null) {
+            committee.setDescription(request.getDescription());
+        }
+
+        Committee updatedCommittee = committeeRepository.save(committee);
+        log.info("Committee updated: {}", updatedCommittee.getName());
+
+        return mapCommitteeToResponse(updatedCommittee);
+    }
+
+    /**
+     * Delete a committee.
+     * ADMIN ONLY
+     * Note: This might fail if there are decisions referencing this committee.
+     *
+     * @param id committee UUID
+     */
+    @Transactional
+    public void deleteCommittee(String id) {
+        log.info("Deleting committee with id: {}", id);
+
+        Committee committee = committeeRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Committee not found with id: " + id));
+
+        try {
+            committeeRepository.delete(committee);
+            log.info("Committee deleted: {}", committee.getName());
+        } catch (Exception e) {
+            log.error("Failed to delete committee {}: {}", id, e.getMessage());
+            throw new IllegalStateException(
+                    "Cannot delete committee because it is referenced by existing decisions",
+                    e
+            );
+        }
     }
 
     // =========================================================================
