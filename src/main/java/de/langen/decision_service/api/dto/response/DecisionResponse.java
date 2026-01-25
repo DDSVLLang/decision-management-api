@@ -28,6 +28,8 @@ public class DecisionResponse {
     private String decisionCommittee;
     private String printMatter;
     private String decisionDepartment;
+    private List<String> decisionDepartments;
+    private List<DepartmentInfo> departments;
     private String decisionTopic;
     private String status;
 
@@ -52,6 +54,35 @@ public class DecisionResponse {
     private String completedAt;
     private String completedBy;
     private CompletedByUserInfo completedByUser;
+
+    /**
+     * Department information embedded in Decision response.
+     * Similar to ReportResponse structure.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DepartmentInfo {
+        private String id;
+        private String name;
+        private String shortName;
+        private String description;
+        private Boolean active;
+        private HeadUserInfo headUser;
+
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class HeadUserInfo {
+            private String id;
+            private String firstName;
+            private String lastName;
+            private String fullName;
+            private String email;
+        }
+    }
 
     @Data
     @Builder

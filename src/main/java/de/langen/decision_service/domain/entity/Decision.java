@@ -54,9 +54,22 @@ public class Decision {
     @JoinColumn(name = "committee_id", nullable = false)
     private Committee committee;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department responsibleDepartment;
+    /**
+     * Responsible departments for implementing the decision.
+     * MANY-TO-MANY relationship via decision_department junction table.
+     */
+    @ManyToMany(
+            fetch = FetchType.LAZY,
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+    )
+    @JoinTable(
+            name = "decision_department",
+            schema = "dm",
+            joinColumns = @JoinColumn(name = "decision_id"),
+            inverseJoinColumns = @JoinColumn(name = "department_id")
+    )
+    @Builder.Default
+    private List<Department> responsibleDepartments = new ArrayList<>();
 
     // =========================================================================
     // Core Decision Fields
@@ -145,6 +158,53 @@ public class Decision {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    // =========================================================================
+    // Helper Methods for Department Management
+    // =========================================================================
+
+    /**
+     * Add a department to this decision.
+     */
+    public void addDepartment(Department department) {
+        if (responsibleDepartments == null) {
+            responsibleDepartments = new ArrayList<>();
+        }
+        if (!responsibleDepartments.contains(department)) {
+            responsibleDepartments.add(department);
+        }
+    }
+
+    /**
+     * Remove a department from this decision.
+     */
+    public void removeDepartment(Department department) {
+        if (responsibleDepartments != null) {
+            responsibleDepartments.remove(department);
+        }
+    }
+
+    /**
+     * Clear all departments.
+     */
+    public void clearDepartments() {
+        if (responsibleDepartments != null) {
+            responsibleDepartments.clear();
+        }
+    }
+
+    /**
+     * Set departments (replaces all existing departments).
+     */
+    public void setDepartments(List<Department> departments) {
+        if (this.responsibleDepartments == null) {
+            this.responsibleDepartments = new ArrayList<>();
+        }
+        this.responsibleDepartments.clear();
+        if (departments != null) {
+            this.responsibleDepartments.addAll(departments);
+        }
     }
 
     // =========================================================================

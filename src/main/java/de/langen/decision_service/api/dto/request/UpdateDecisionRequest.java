@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * Request DTO for updating an existing Decision.
  * All fields are optional.
@@ -30,7 +32,11 @@ public class UpdateDecisionRequest {
 
     private String decisionCommittee;
 
-    private String decisionDepartment;
+    @Size(max = 255, message = "Responsible department must not exceed 255 characters")
+    private String responsibleDepartment;
+
+    private List<@Size(max = 255, message = "Department name too long") String> responsibleDepartments;
+
 
     private String topic;
 

@@ -128,4 +128,8 @@ public class Department {
     public void removeHead() {
         this.headUser = null;
     }
+
+    public UUID getHeadUserId() {
+        return headUser != null ? headUser.getId() : null;
+    }
 }

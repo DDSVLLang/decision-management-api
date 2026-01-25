@@ -3,9 +3,8 @@ package de.langen.decision_service.infrastructure.persistance.specification;
 import de.langen.decision_service.domain.entity.Decision;
 import de.langen.decision_service.domain.entity.DecisionStatus;
 import de.langen.decision_service.domain.entity.DecisionPriority;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
+import de.langen.decision_service.domain.entity.Department;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -98,6 +97,28 @@ public class DecisionSpecification {
 
                 predicates.add(criteriaBuilder.or(namePredicate, shortNamePredicate));
             }
+
+            // ================================================================
+            // Department Filter (Many-to-Many Join)
+            // ================================================================
+            if (department != null && !department.isBlank()) {
+                // Create JOIN to responsibleDepartments collection
+                Join<Decision, Department> deptJoin = root.join("responsibleDepartments", JoinType.LEFT);
+
+                // Filter by department name OR shortName (case-insensitive)
+                Predicate namePredicate = criteriaBuilder.equal(
+                        criteriaBuilder.lower(deptJoin.get("name")),
+                        department.toLowerCase()
+                );
+
+                Predicate shortNamePredicate = criteriaBuilder.equal(
+                        criteriaBuilder.lower(deptJoin.get("shortName")),
+                        department.toLowerCase()
+                );
+
+                predicates.add(criteriaBuilder.or(namePredicate, shortNamePredicate));
+            }
+
 
             // ================================================================
             // Date Range Filters
@@ -318,5 +339,67 @@ public class DecisionSpecification {
             }
         }
         return result;
+    }
+
+    /**
+     * Filter decisions that have ANY of the specified departments.
+     *
+     * @param departmentNames list of department names
+     * @return specification
+     */
+    public static Specification<Decision> hasDepartments(List<String> departmentNames) {
+        return (root, query, criteriaBuilder) -> {
+            if (departmentNames == null || departmentNames.isEmpty()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            Join<Decision, Department> deptJoin = root.join("responsibleDepartments", JoinType.LEFT);
+
+            // Create OR conditions for all department names
+            List<Predicate> deptPredicates = new ArrayList<>();
+            for (String deptName : departmentNames) {
+                Predicate namePredicate = criteriaBuilder.equal(
+                        criteriaBuilder.lower(deptJoin.get("name")),
+                        deptName.toLowerCase()
+                );
+
+                Predicate shortNamePredicate = criteriaBuilder.equal(
+                        criteriaBuilder.lower(deptJoin.get("shortName")),
+                        deptName.toLowerCase()
+                );
+
+                deptPredicates.add(criteriaBuilder.or(namePredicate, shortNamePredicate));
+            }
+
+            return criteriaBuilder.or(deptPredicates.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * Filter decisions that have ALL of the specified departments.
+     *
+     * @param departmentNames list of department names
+     * @return specification
+     */
+    public static Specification<Decision> hasAllDepartments(List<String> departmentNames) {
+        return (root, query, criteriaBuilder) -> {
+            if (departmentNames == null || departmentNames.isEmpty()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            // This is more complex - requires subquery
+            Subquery<Long> subquery = query.subquery(Long.class);
+            Root<Decision> subRoot = subquery.from(Decision.class);
+            Join<Decision, Department> subDeptJoin = subRoot.join("responsibleDepartments");
+
+            subquery.select(criteriaBuilder.count(subDeptJoin))
+                    .where(criteriaBuilder.equal(subRoot.get("id"), root.get("id")));
+
+            // Decision must have at least as many matching departments as requested
+            return criteriaBuilder.greaterThanOrEqualTo(
+                    subquery.getSelection(),
+                    (long) departmentNames.size()
+            );
+        };
     }
 }

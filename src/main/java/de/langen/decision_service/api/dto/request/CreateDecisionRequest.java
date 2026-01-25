@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * Request DTO for creating a new Decision.
  *
@@ -34,8 +36,10 @@ public class CreateDecisionRequest {
     @NotBlank(message = "Decision committee is required")
     private String decisionCommittee;
 
-    @NotBlank(message = "Responsible department is required")
+    @Size(max = 255, message = "Responsible department must not exceed 255 characters")
     private String responsibleDepartment;
+
+    private List<@Size(max = 255, message = "Department name too long") String> responsibleDepartments;  // ⭐ NEU: Array
 
     @NotBlank(message = "Topic is required")
     private String topic;

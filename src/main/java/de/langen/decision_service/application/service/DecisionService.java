@@ -19,7 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service for Decision entity operations with Role-Based Access Control.
@@ -64,6 +66,18 @@ public class DecisionService {
 
         Decision decision = decisionMapper.toEntity(request);
         decision.setCreatedBy(currentUser.getId());
+
+        if (request.getResponsibleDepartments() != null && !request.getResponsibleDepartments().isEmpty()) {
+            List<Department> departments = request.getResponsibleDepartments().stream()
+                    .map(deptName -> departmentRepository.findByName(deptName)
+                            .or(() -> departmentRepository.findByShortName(deptName))
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Department not found: " + deptName
+                            )))
+                    .collect(Collectors.toList());
+
+            decision.setDepartments(departments);  // ⭐ VOR dem save()!
+        }
 
         var savedDecision = decisionRepository.save(decision);
 
@@ -212,24 +226,7 @@ public class DecisionService {
             decision.setActualHours(request.getActualHours());
         }
 
-        // Update Entity relationships
-        if (request.getDecisionDepartment() != null) {
-            Department department = departmentRepository.findByName(request.getDecisionDepartment())
-                    .or(() -> departmentRepository.findByShortName(request.getDecisionDepartment()))
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Department not found: " + request.getDecisionDepartment()
-                    ));
-            decision.setResponsibleDepartment(department);
-        }
-
-        if (request.getDecisionCommittee() != null) {
-            Committee committee = committeeRepository.findByName(request.getDecisionCommittee())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Committee not found: " + request.getDecisionCommittee()
-                    ));
-            decision.setCommittee(committee);
-        }
-
+        // Update Topic
         if (request.getTopic() != null) {
             Topic topic = topicRepository.findByName(request.getTopic())
                     .orElseThrow(() -> new ResourceNotFoundException(
@@ -238,7 +235,47 @@ public class DecisionService {
             decision.setTopic(topic);
         }
 
-        // Assign to user (ADMIN can assign to anyone)
+        // Update Committee
+        if (request.getDecisionCommittee() != null) {
+            Committee committee = committeeRepository.findByName(request.getDecisionCommittee())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Committee not found: " + request.getDecisionCommittee()
+                    ));
+            decision.setCommittee(committee);
+        }
+
+        // ⭐ Update Departments - WICHTIG: REPLACE ALL
+        if (request.getResponsibleDepartments() != null && !request.getResponsibleDepartments().isEmpty()) {
+            List<Department> departments = request.getResponsibleDepartments().stream()
+                    .map(deptName -> departmentRepository.findByName(deptName)
+                            .or(() -> departmentRepository.findByShortName(deptName))
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Department not found: " + deptName
+                            )))
+                    .collect(Collectors.toList());
+
+            // ⭐ CRITICAL: Clear existing + set new
+            decision.clearDepartments();
+            decision.setDepartments(departments);
+
+            log.info("Updated departments for decision {}: {}", id,
+                    departments.stream().map(Department::getShortName).collect(Collectors.toList()));
+        }
+        // Backward compatibility: single department
+        else if (request.getResponsibleDepartment() != null && !request.getResponsibleDepartment().isBlank()) {
+            Department department = departmentRepository.findByName(request.getResponsibleDepartment())
+                    .or(() -> departmentRepository.findByShortName(request.getResponsibleDepartment()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Department not found: " + request.getResponsibleDepartment()
+                    ));
+
+            decision.clearDepartments();
+            decision.addDepartment(department);
+
+            log.info("Updated department for decision {}: {}", id, department.getShortName());
+        }
+
+        // Update Assignee
         if (request.getAssigneeId() != null) {
             UUID assigneeUuid = UUID.fromString(request.getAssigneeId());
             User assignee = userRepository.findById(assigneeUuid)

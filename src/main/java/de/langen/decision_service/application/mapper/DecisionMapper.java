@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * MapStruct mapper for Decision entity.
@@ -60,7 +61,7 @@ public abstract class DecisionMapper {
     // Map String fields to Entity relationships
     @Mapping(target = "topic", source = "topic", qualifiedByName = "stringToTopic")
     @Mapping(target = "committee", source = "decisionCommittee", qualifiedByName = "stringToCommittee")
-    @Mapping(target = "responsibleDepartment", source = "responsibleDepartment", qualifiedByName = "stringToDepartment")
+    @Mapping(target = "responsibleDepartments", ignore = true)
     @Mapping(target = "assignee", source = "assigneeId", qualifiedByName = "stringToUser")
 
     // Ignore entity-managed fields
@@ -96,7 +97,6 @@ public abstract class DecisionMapper {
     // IMPORTANT: Ignore all entity relationships - will be set in @AfterMapping
     @Mapping(target = "decisionTopic", ignore = true)
     @Mapping(target = "decisionCommittee", ignore = true)
-    @Mapping(target = "decisionDepartment", ignore = true)
     @Mapping(target = "assigneeId", ignore = true)
     @Mapping(target = "assigneeName", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -258,10 +258,16 @@ public abstract class DecisionMapper {
         if (entity.getCommittee() != null) {
             response.setDecisionCommittee(entity.getCommittee().getName());
         }
+        // ⭐ Map Departments - FULL OBJECTS
+        if (entity.getResponsibleDepartments() != null && !entity.getResponsibleDepartments().isEmpty()) {
+            // Full objects
+            List<DecisionResponse.DepartmentInfo> departmentInfos = entity.getResponsibleDepartments().stream()
+                    .map(this::mapDepartmentToDepartmentInfo)
+                    .collect(Collectors.toList());
+            response.setDepartments(departmentInfos);
 
-        // Map Department entity to String
-        if (entity.getResponsibleDepartment() != null) {
-            response.setDecisionDepartment(entity.getResponsibleDepartment().getName());
+            // Backward compatibility: first department name
+            response.setDecisionDepartment(entity.getResponsibleDepartments().get(0).getName());
         }
 
         // Map Assignee entity to ID and Name
@@ -292,5 +298,39 @@ public abstract class DecisionMapper {
 
         // Note: Reports are not mapped here as they would cause lazy loading
         // Use separate endpoint to fetch reports if needed
+    }
+
+    /**
+     * Map Department entity to DepartmentInfo DTO.
+     *
+     * @param department department entity
+     * @return department info
+     */
+    protected DecisionResponse.DepartmentInfo mapDepartmentToDepartmentInfo(Department department) {
+        DecisionResponse.DepartmentInfo info = DecisionResponse.DepartmentInfo.builder()
+                .id(department.getId().toString())
+                .name(department.getName())
+                .shortName(department.getShortName())
+                .description(department.getDescription())
+                .active(department.getActive())
+                .build();
+
+        // Map Head User if exists
+        if (department.getHeadUserId() != null) {
+            User headUser = userRepository.findById(department.getHeadUserId()).orElse(null);
+            if (headUser != null) {
+                info.setHeadUser(
+                        DecisionResponse.DepartmentInfo.HeadUserInfo.builder()
+                                .id(headUser.getId().toString())
+                                .firstName(headUser.getFirstName())
+                                .lastName(headUser.getLastName())
+                                .fullName(headUser.getFullName())
+                                .email(headUser.getEmail())
+                                .build()
+                );
+            }
+        }
+
+        return info;
     }
 }
