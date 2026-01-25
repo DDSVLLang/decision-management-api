@@ -39,4 +39,11 @@ public class ManagementController {
     public ApiResponse<List<CommitteeResponse>> getAllCommittees() {
         return ApiResponse.success(managementService.getAllCommittees());
     }
+
+    @GetMapping("/user")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @Operation(summary = "Get all committees")
+    public ApiResponse<List<UserResponse>> getAllUsers() {
+        return ApiResponse.success(managementService.getAllUsers());
+    }
 }

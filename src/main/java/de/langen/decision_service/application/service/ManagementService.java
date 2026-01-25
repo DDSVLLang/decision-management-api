@@ -73,6 +73,7 @@ public class ManagementService {
         return TopicResponse.builder()
                 .id(topic.getId().toString())
                 .name(topic.getName())
+                .description(topic.getDescription())
                 .createdAt(topic.getCreatedAt() != null
                         ? topic.getCreatedAt().format(DATE_TIME_FORMATTER)
                         : null)
@@ -86,6 +87,8 @@ public class ManagementService {
         return CommitteeResponse.builder()
                 .id(committee.getId().toString())
                 .name(committee.getName())
+                .shortName(committee.getShortName())
+                .description(committee.getDescription())
                 .createdAt(committee.getCreatedAt() != null
                         ? committee.getCreatedAt().format(DATE_TIME_FORMATTER)
                         : null)
@@ -99,6 +102,8 @@ public class ManagementService {
         return DepartmentResponse.builder()
                 .id(department.getId().toString())
                 .name(department.getName())
+                .shortName(department.getShortName())
+                .description(department.getDescription())
                 .createdAt(department.getCreatedAt() != null
                         ? department.getCreatedAt().format(DATE_TIME_FORMATTER)
                         : null)
