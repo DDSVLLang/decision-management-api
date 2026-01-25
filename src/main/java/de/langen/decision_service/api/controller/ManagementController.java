@@ -1,49 +1,340 @@
 package de.langen.decision_service.api.controller;
 
-
+import de.langen.decision_service.api.dto.request.*;
 import de.langen.decision_service.api.dto.response.*;
 import de.langen.decision_service.application.service.ManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * REST Controller for master data management.
+ * Provides CRUD operations for Topics, Departments, Committees, and Users.
+ *
+ * @author Backend Team
+ * @version 2.0 - Added Topic CRUD operations
+ */
 @RestController
 @RequestMapping("/api/v1/management")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Management API", description = "Master data management")
 public class ManagementController {
 
     private final ManagementService managementService;
 
+    // =========================================================================
+    // Topic Endpoints
+    // =========================================================================
+
+    /**
+     * Get all topics.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/topic
+     */
     @GetMapping("/topic")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all topics")
-    public ApiResponse<List<TopicResponse>> getAllTopics() {
-        return ApiResponse.success(managementService.getAllTopics());
+    public ResponseEntity<ApiResponse<List<TopicResponse>>> getAllTopics() {
+        log.debug("GET /api/v1/management/topic");
+
+        List<TopicResponse> topics = managementService.getAllTopics();
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<TopicResponse>>builder()
+                        .success(true)
+                        .data(topics)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
     }
 
+    /**
+     * Get topic by ID.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/topic/{id}
+     */
+    @GetMapping("/topic/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get topic by ID")
+    public ResponseEntity<ApiResponse<TopicResponse>> getTopicById(@PathVariable String id) {
+        log.debug("GET /api/v1/management/topic/{}", id);
+
+        TopicResponse topic = managementService.getTopicById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TopicResponse>builder()
+                        .success(true)
+                        .data(topic)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Create a new topic.
+     * ADMIN ONLY
+     *
+     * POST /api/v1/management/topic
+     */
+    @PostMapping("/topic")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create a new topic")
+    public ResponseEntity<ApiResponse<TopicResponse>> createTopic(
+            @Valid @RequestBody CreateTopicRequest request
+    ) {
+        log.info("POST /api/v1/management/topic - name: {}", request.getName());
+
+        TopicResponse topic = managementService.createTopic(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<TopicResponse>builder()
+                        .success(true)
+                        .message("Topic created successfully")
+                        .data(topic)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Update an existing topic.
+     * ADMIN ONLY
+     *
+     * PUT /api/v1/management/topic/{id}
+     */
+    @PutMapping("/topic/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update an existing topic")
+    public ResponseEntity<ApiResponse<TopicResponse>> updateTopic(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateTopicRequest request
+    ) {
+        log.info("PUT /api/v1/management/topic/{}", id);
+
+        TopicResponse topic = managementService.updateTopic(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TopicResponse>builder()
+                        .success(true)
+                        .message("Topic updated successfully")
+                        .data(topic)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Delete a topic.
+     * ADMIN ONLY
+     *
+     * DELETE /api/v1/management/topic/{id}
+     */
+    @DeleteMapping("/topic/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete a topic")
+    public ResponseEntity<ApiResponse<Void>> deleteTopic(@PathVariable String id) {
+        log.info("DELETE /api/v1/management/topic/{}", id);
+
+        managementService.deleteTopic(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .success(true)
+                        .message("Topic deleted successfully")
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // =========================================================================
+    // Department Endpoints
+    // =========================================================================
+
+    /**
+     * Get all departments.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/department
+     */
     @GetMapping("/department")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all departments")
-    public ApiResponse<List<DepartmentResponse>> getAllDepartments() {
-        return ApiResponse.success(managementService.getAllDepartments());
+    public ResponseEntity<ApiResponse<List<DepartmentResponse>>> getAllDepartments() {
+        log.debug("GET /api/v1/management/department");
+
+        List<DepartmentResponse> departments = managementService.getAllDepartments();
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<DepartmentResponse>>builder()
+                        .success(true)
+                        .data(departments)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
     }
 
+    /**
+     * Get department by ID.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/department/{id}
+     */
+    @GetMapping("/department/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get department by ID")
+    public ResponseEntity<ApiResponse<DepartmentResponse>> getDepartmentById(@PathVariable String id) {
+        log.debug("GET /api/v1/management/topic/{}", id);
+
+        DepartmentResponse department = managementService.getDepartmentById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<DepartmentResponse>builder()
+                        .success(true)
+                        .data(department)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Create a new department.
+     * ADMIN ONLY
+     *
+     * POST /api/v1/management/department
+     */
+    @PostMapping("/department")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create a new department")
+    public ResponseEntity<ApiResponse<DepartmentResponse>> createDepartment(
+            @Valid @RequestBody CreateDepartmentRequest request
+    ) {
+        log.info("POST /api/v1/management/department - name: {}", request.getName());
+
+        DepartmentResponse department = managementService.createDepartment(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<DepartmentResponse>builder()
+                        .success(true)
+                        .message("Department created successfully")
+                        .data(department)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Update an existing department.
+     * ADMIN ONLY
+     *
+     * PUT /api/v1/department/topic/{id}
+     */
+    @PutMapping("/department/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update an existing department")
+    public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartment(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateDepartmentRequest request
+    ) {
+        log.info("PUT /api/v1/management/department/{}", id);
+
+        DepartmentResponse department = managementService.updateDepartment(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<DepartmentResponse>builder()
+                        .success(true)
+                        .message("Topic updated successfully")
+                        .data(department)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Delete a department.
+     * ADMIN ONLY
+     *
+     * DELETE /api/v1/management/department/{id}
+     */
+    @DeleteMapping("/department/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete a department")
+    public ResponseEntity<ApiResponse<Void>> deleteDepartment(@PathVariable String id) {
+        log.info("DELETE /api/v1/management/department/{}", id);
+
+        managementService.deleteDepartment(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .success(true)
+                        .message("Department deleted successfully")
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // =========================================================================
+    // Committee Endpoints (Read-Only)
+    // =========================================================================
+
+    /**
+     * Get all committees.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/committee
+     */
     @GetMapping("/committee")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all committees")
-    public ApiResponse<List<CommitteeResponse>> getAllCommittees() {
-        return ApiResponse.success(managementService.getAllCommittees());
+    public ResponseEntity<ApiResponse<List<CommitteeResponse>>> getAllCommittees() {
+        log.debug("GET /api/v1/management/committee");
+
+        List<CommitteeResponse> committees = managementService.getAllCommittees();
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<CommitteeResponse>>builder()
+                        .success(true)
+                        .data(committees)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
     }
 
+    // =========================================================================
+    // User Endpoints (Read-Only)
+    // =========================================================================
+
+    /**
+     * Get all users.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/user
+     */
     @GetMapping("/user")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    @Operation(summary = "Get all committees")
-    public ApiResponse<List<UserResponse>> getAllUsers() {
-        return ApiResponse.success(managementService.getAllUsers());
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all users")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
+        log.debug("GET /api/v1/management/user");
+
+        List<UserResponse> users = managementService.getAllUsers();
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<UserResponse>>builder()
+                        .success(true)
+                        .data(users)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
     }
 }
