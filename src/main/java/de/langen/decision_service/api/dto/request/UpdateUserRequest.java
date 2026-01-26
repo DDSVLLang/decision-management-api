@@ -23,6 +23,14 @@ public class UpdateUserRequest {
 
     @Size(max = 100, message = "Last name must not exceed 100 characters")
     private String lastName;
+
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
+    @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$",
+            message = "Password must contain at least one digit, one lowercase, one uppercase, and one special character"
+    )
+    private String password;
+
     /**
      * Department ID (UUID).
      * References dm.department table.

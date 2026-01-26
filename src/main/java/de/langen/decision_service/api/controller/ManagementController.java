@@ -435,4 +435,77 @@ public class ManagementController {
                         .build()
         );
     }
+
+    /**
+     * Get user by ID.
+     * ADMIN ONLY
+     *
+     * GET /api/v1/management/user/{id}
+     */
+    @GetMapping("/user/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get user by ID")
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable String id) {
+        log.debug("GET /api/v1/management/user/{}", id);
+
+        UserResponse user = managementService.getUserById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .success(true)
+                        .data(user)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Update an existing user.
+     * ADMIN ONLY
+     *
+     * PUT /api/v1/management/user/{id}
+     */
+    @PutMapping("/user/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update an existing user")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateUserRequest request
+    ) {
+        log.info("PUT /api/v1/management/user/{}", id);
+
+        UserResponse user = managementService.updateUser(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .success(true)
+                        .message("User updated successfully")
+                        .data(user)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    /**
+     * Delete a user.
+     * ADMIN ONLY
+     *
+     * DELETE /api/v1/management/user/{id}
+     */
+    @DeleteMapping("/user/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete a user")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String id) {
+        log.info("DELETE /api/v1/management/user/{}", id);
+
+        managementService.deleteUser(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .success(true)
+                        .message("User deleted successfully")
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
 }

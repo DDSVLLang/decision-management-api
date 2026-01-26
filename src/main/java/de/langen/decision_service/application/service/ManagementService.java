@@ -10,6 +10,8 @@ import de.langen.decision_service.domain.repository.TopicRepository;
 import de.langen.decision_service.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,10 @@ public class ManagementService {
     private final DepartmentRepository departmentRepository;
     private final CommitteeRepository committeeRepository;
     private final UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     // =========================================================================
     // Topic Operations
@@ -425,7 +431,7 @@ public class ManagementService {
     }
 
     // =========================================================================
-    // User Operations (Read-Only for now)
+    // User Operations
     // =========================================================================
 
     @Transactional(readOnly = true)
@@ -434,6 +440,141 @@ public class ManagementService {
         return userRepository.findAll().stream()
                 .map(this::mapUserToResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Get user by ID.
+     * ADMIN ONLY
+     *
+     * @param id user UUID
+     * @return user
+     */
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(String id) {
+        log.debug("Fetching user with id: {}", id);
+
+        User user = userRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        return mapUserToResponse(user);
+    }
+
+    /**
+     * Update an existing user.
+     * ADMIN ONLY
+     *
+     * @param id user UUID
+     * @param request update data
+     * @return updated user
+     */
+    @Transactional
+    public UserResponse updateUser(String id, UpdateUserRequest request) {
+        log.info("Updating user with id: {}", id);
+
+        User user = userRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        // Update email if provided
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            // Check if new email conflicts with existing user
+            userRepository.findByEmail(request.getEmail())
+                    .ifPresent(existingUser -> {
+                        if (!existingUser.getId().equals(user.getId())) {
+                            throw new IllegalArgumentException(
+                                    "User with email '" + request.getEmail() + "' already exists"
+                            );
+                        }
+                    });
+            user.setEmail(request.getEmail());
+        }
+
+        // Update password if provided (will be BCrypt hashed)
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            log.info("Password updated for user: {}", user.getEmail());
+        }
+
+        // Update role if provided
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            try {
+                UserRole newRole = UserRole.valueOf(request.getRole().toUpperCase());
+                user.setRole(newRole);
+                log.info("Role updated for user {}: {} -> {}",
+                        user.getEmail(), user.getRole(), newRole);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid role: " + request.getRole());
+            }
+        }
+
+        // Update first name if provided
+        if (request.getFirstName() != null && !request.getFirstName().isBlank()) {
+            user.setFirstName(request.getFirstName());
+        }
+
+        // Update last name if provided
+        if (request.getLastName() != null && !request.getLastName().isBlank()) {
+            user.setLastName(request.getLastName());
+        }
+
+        // Update department if provided
+        if (request.getDepartmentId() != null && !request.getDepartmentId().isBlank()) {
+            try {
+                UUID deptUuid = UUID.fromString(request.getDepartmentId());
+                Department department = departmentRepository.findById(deptUuid)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Department not found with id: " + request.getDepartmentId()
+                        ));
+                user.setDepartment(department);
+                log.info("Department updated for user {}: {}",
+                        user.getEmail(), department.getName());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Invalid department ID format: " + request.getDepartmentId()
+                );
+            }
+        }
+
+        // Update description if provided
+        if (request.getDescription() != null) {
+            user.setDescription(request.getDescription());
+        }
+
+        // Update active status if provided
+        if (request.getActive() != null) {
+            user.setActive(request.getActive());
+            log.info("Active status updated for user {}: {}",
+                    user.getEmail(), request.getActive());
+        }
+
+        User updatedUser = userRepository.save(user);
+        log.info("User updated: {}", updatedUser.getEmail());
+
+        return mapUserToResponse(updatedUser);
+    }
+
+    /**
+     * Delete a user.
+     * ADMIN ONLY
+     *
+     * @param id user UUID
+     */
+    @Transactional
+    public void deleteUser(String id) {
+        log.info("Deleting user with id: {}", id);
+
+        User user = userRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        try {
+            userRepository.delete(user);
+            log.info("User deleted: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to delete user {}: {}", id, e.getMessage());
+            throw new IllegalStateException(
+                    "Cannot delete user because they are referenced by existing decisions or reports",
+                    e
+            );
+        }
     }
 
     // =========================================================================
