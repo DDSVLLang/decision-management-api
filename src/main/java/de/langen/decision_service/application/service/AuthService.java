@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -99,8 +100,6 @@ public class AuthService {
         }
 
         Department department = null;
-
-        // Try new format first (departmentId - UUID)
         if (request.getDepartmentId() != null && !request.getDepartmentId().isBlank()) {
             try {
                 UUID deptUuid = UUID.fromString(request.getDepartmentId());
@@ -122,7 +121,7 @@ public class AuthService {
                 .role(userRole)
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .department(department)  // ⭐ Set Department entity (not string)
+                .department(department)
                 .active(true)
                 .build();
 
@@ -274,15 +273,39 @@ public class AuthService {
      * @return user info
      */
     private AuthResponse.UserInfo buildUserInfo(User user) {
-        return AuthResponse.UserInfo.builder()
+        AuthResponse.UserInfo.UserInfoBuilder builder = AuthResponse.UserInfo.builder()
                 .id(user.getId().toString())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
-                .role(user.getRole().getValue())
-                .responsibleDepartment(user.getResponsibleDepartment())
-                .build();
+                .role(user.getRole().getValue());
+
+        if (user.getDepartment() != null) {
+            Department userDepartment = user.getDepartment();
+
+            Department department = departmentRepository.findById(userDepartment.getId())
+                    .orElse(null);
+
+            if (department != null) {
+                builder.department(AuthResponse.UserInfo.DepartmentInfo.builder()
+                        .id(department.getId().toString())
+                        .name(department.getName())
+                        .shortName(department.getShortName())
+                        .build());
+            } else {
+                builder.department(AuthResponse.UserInfo.DepartmentInfo.builder()
+                        .id(userDepartment.getId().toString())
+                        .name(userDepartment.getName())
+                        .shortName(userDepartment.getShortName())
+                        .build());
+
+                log.warn("Department with ID {} not found in database, using cached data",
+                        userDepartment.getId());
+            }
+        }
+
+        return builder.build();
     }
 
     /**
