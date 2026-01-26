@@ -47,8 +47,9 @@ public class User implements UserDetails {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(name = "responsible_department", length = 255)
-    private String responsibleDepartment;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -62,6 +63,14 @@ public class User implements UserDetails {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // =========================================================================
+    // Deprecated Field (for backward compatibility during migration)
+    // =========================================================================
+
+    @Column(name = "responsible_department", length = 255)
+    @Deprecated
+    private String responsibleDepartment;
 
     // =========================================================================
     // Lifecycle Callbacks

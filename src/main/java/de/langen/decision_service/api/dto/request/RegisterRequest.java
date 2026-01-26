@@ -43,8 +43,15 @@ public class RegisterRequest {
     @Pattern(regexp = "^(ADMIN|USER)?$", message = "Role must be either ADMIN or USER, or empty for default USER role")
     private String role;
 
-    @Size(max = 255, message = "Department must not exceed 255 characters")
-    private String responsibleDepartment;
+    /**
+     * Department ID (UUID).
+     * References dm.department(id).
+     */
+    @Pattern(
+            regexp = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            message = "Department ID must be a valid UUID"
+    )
+    private String departmentId;
 
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;

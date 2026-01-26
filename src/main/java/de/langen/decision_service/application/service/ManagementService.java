@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -474,16 +475,35 @@ public class ManagementService {
     }
 
     private UserResponse mapUserToResponse(User user) {
-        return UserResponse.builder()
+        UserResponse.UserResponseBuilder builder = UserResponse.builder()
                 .id(user.getId().toString())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
                 .role(user.getRole().getValue())
-                .responsibleDepartment(user.getResponsibleDepartment())
+                .description(user.getDescription())
                 .active(user.getActive())
-                .createdAt(String.valueOf(user.getCreatedAt()))
-                .build();
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt());
+
+        if (user.getDepartment() != null) {
+            Department dept = user.getDepartment();
+
+            builder.department(
+                    UserResponse.DepartmentInfo.builder()
+                            .id(dept.getId().toString())
+                            .name(dept.getName())
+                            .shortName(dept.getShortName())
+                            .description(dept.getDescription())
+                            .active(dept.getActive())
+                            .build()
+            );
+
+            // Backward compatibility: set string field
+            builder.responsibleDepartment(dept.getName());
+        }
+
+        return builder.build();
     }
 }

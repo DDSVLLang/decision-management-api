@@ -36,11 +36,18 @@ public class CreateUserRequest {
     @Size(max = 100, message = "Last name must not exceed 100 characters")
     private String lastName;
 
+    /**
+     * Department ID (UUID).
+     * References dm.department table.
+     */
+    @Pattern(
+            regexp = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            message = "Department ID must be a valid UUID"
+    )
+    private String departmentId;
+
     @Pattern(regexp = "ADMIN|USER", message = "Role must be either ADMIN or USER")
     private String role;
-
-    @Size(max = 255, message = "Responsible department must not exceed 255 characters")
-    private String responsibleDepartment;
 
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;

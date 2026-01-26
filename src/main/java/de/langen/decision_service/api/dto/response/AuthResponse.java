@@ -32,6 +32,19 @@ public class AuthResponse {
         private String lastName;
         private String fullName;
         private String role;
+        private DepartmentInfo department;
         private String responsibleDepartment;
+
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class DepartmentInfo {
+            private String id;
+            private String name;
+            private String shortName;
+        }
     }
+
+
 }

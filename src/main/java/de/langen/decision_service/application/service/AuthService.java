@@ -5,9 +5,11 @@ import de.langen.decision_service.api.dto.request.RegisterRequest;
 import de.langen.decision_service.api.dto.response.AuthResponse;
 import de.langen.decision_service.api.exception.ResourceNotFoundException;
 import de.langen.decision_service.domain.entity.AuthToken;
+import de.langen.decision_service.domain.entity.Department;
 import de.langen.decision_service.domain.entity.User;
 import de.langen.decision_service.domain.entity.UserRole;
 import de.langen.decision_service.domain.repository.AuthTokenRepository;
+import de.langen.decision_service.domain.repository.DepartmentRepository;
 import de.langen.decision_service.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -32,6 +35,7 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
     private final AuthTokenRepository authTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -79,38 +83,69 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        log.info("Registration attempt for email: {}", request.getEmail());
+        log.info("Registering new user: {}", request.getEmail());
 
-        // Validate mandatory fields
-        validateMandatoryFields(request);
-
-
-        // Check if email already exists
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already registered");
+        // Check if user already exists
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists");
         }
 
-        // Create a new user with mandatory fields
+        // Validate and parse role
+        UserRole userRole;
+        try {
+            userRole = UserRole.valueOf(request.getRole().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role: " + request.getRole());
+        }
+
+        Department department = null;
+
+        // Try new format first (departmentId - UUID)
+        if (request.getDepartmentId() != null && !request.getDepartmentId().isBlank()) {
+            try {
+                UUID deptUuid = UUID.fromString(request.getDepartmentId());
+                department = departmentRepository.findById(deptUuid)
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Department not found with id: " + request.getDepartmentId()
+                        ));
+                log.debug("Mapped departmentId {} to department: {}",
+                        request.getDepartmentId(), department.getName());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid department ID format: " + request.getDepartmentId());
+            }
+        }
+
+        // Create user with BCrypt password
         User user = User.builder()
-                .email(request.getEmail().trim().toLowerCase()) // Normalize email
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName().trim())
-                .lastName(request.getLastName().trim())
-                .role(parseRoleWithDefault(request.getRole()))
-                .responsibleDepartment(request.getResponsibleDepartment())
-                .description(request.getDescription())
+                .role(userRole)
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .department(department)  // ⭐ Set Department entity (not string)
                 .active(true)
                 .build();
 
-
         User savedUser = userRepository.save(user);
+        log.info("User registered successfully: {} with role: {}", savedUser.getEmail(), savedUser.getRole());
 
-        // Generate token
-        AuthToken authToken = createToken(savedUser);
+        // Generate authentication token
+        AuthToken token = AuthToken.builder()
+                .token(UUID.randomUUID().toString())
+                .user(savedUser)
+                .expiresAt(LocalDateTime.now().plusDays(TOKEN_EXPIRATION_DAYS))
+                .revoked(false)
+                .build();
 
-        log.info("User registered successfully: {}", savedUser.getEmail());
+        AuthToken savedToken = authTokenRepository.save(token);
 
-        return buildAuthResponse(authToken, savedUser);
+        // Build response with UserInfo including department
+        return AuthResponse.builder()
+                .token(savedToken.getToken())
+                .tokenType("Bearer")
+                .expiresIn(Duration.ofDays(TOKEN_EXPIRATION_DAYS).toSeconds())
+                .user(mapUserToUserInfo(savedUser))
+                .build();
     }
 
     /**
@@ -305,6 +340,38 @@ public class AuthService {
             log.warn("Invalid role '{}' provided, defaulting to USER", role);
             return UserRole.USER; // Fallback to default
         }
+    }
+
+    /**
+     * Map User entity to UserInfo DTO with department details.
+     */
+    private AuthResponse.UserInfo mapUserToUserInfo(User user) {
+        AuthResponse.UserInfo.UserInfoBuilder builder = AuthResponse.UserInfo.builder()
+                .id(user.getId().toString())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .fullName(user.getFullName())
+                .role(user.getRole().getValue());
+
+        // ⭐ Map department to both old and new format
+        if (user.getDepartment() != null) {
+            Department dept = user.getDepartment();
+
+            // New format: full object
+            builder.department(
+                    AuthResponse.UserInfo.DepartmentInfo.builder()
+                            .id(dept.getId().toString())
+                            .name(dept.getName())
+                            .shortName(dept.getShortName())
+                            .build()
+            );
+
+            // Old format: string (backward compatibility)
+            builder.responsibleDepartment(dept.getName());
+        }
+
+        return builder.build();
     }
 
 }
