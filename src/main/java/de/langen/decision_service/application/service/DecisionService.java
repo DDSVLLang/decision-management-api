@@ -137,7 +137,8 @@ public class DecisionService {
         Specification<Decision> spec = DecisionSpecification.withFilters(
                 request.getStatus(),
                 request.getTopic(),
-                request.getResponsibleDepartment(),
+                request.getDepartment(),
+                request.getCommittee(),
                 dateFrom,
                 dateTo,
                 request.getKeyword()
@@ -145,7 +146,9 @@ public class DecisionService {
 
         // USER: Add filter for assigned decisions only
         if (!currentUser.isAdmin()) {
-            Specification<Decision> assigneeSpec = DecisionSpecification.hasAssignee(currentUser.getEmail());
+            Department userDepartment = userRepository.findById(currentUser.getId()).map(User::getDepartment).orElse(null);
+            if (userDepartment == null) return Page.empty();
+            Specification<Decision> assigneeSpec = DecisionSpecification.hasDepartments(List.of(userDepartment.getName()));
             spec = spec.and(assigneeSpec);
             log.debug("Applied assignee filter for user: {}", currentUser.getEmail());
         }

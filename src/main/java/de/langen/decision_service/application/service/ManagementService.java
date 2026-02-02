@@ -233,6 +233,10 @@ public class ManagementService {
             department.setName(request.getName());
         }
 
+        if (request.getShortName() != null) {
+            department.setShortName(request.getShortName());
+        }
+
         if (request.getDescription() != null) {
             department.setDescription(request.getDescription());
         }

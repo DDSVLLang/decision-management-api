@@ -36,6 +36,7 @@ public class DecisionSpecification {
             String status,
             String topic,
             String department,
+            String committee,
             LocalDate dateFrom,
             LocalDate dateTo,
             String keyword
@@ -78,11 +79,25 @@ public class DecisionSpecification {
             }
 
             // ================================================================
+            // Committee Filter (FK Join to Topic entity)
+            // ================================================================
+            if (committee != null && !committee.isBlank()) {
+                // Create LEFT JOIN to committee entity
+                Join<Object, Object> committeeJoin = root.join("committee", JoinType.LEFT);
+
+                // Filter by committee name (case-insensitive)
+                predicates.add(criteriaBuilder.equal(
+                        criteriaBuilder.lower(committeeJoin.get("name")),
+                        committee.toLowerCase()
+                ));
+            }
+
+            // ================================================================
             // Department Filter (FK Join to Department entity)
             // ================================================================
             if (department != null && !department.isBlank()) {
                 // Create LEFT JOIN to responsibleDepartment entity
-                Join<Object, Object> deptJoin = root.join("responsibleDepartment", JoinType.LEFT);
+                Join<Object, Object> deptJoin = root.join("responsibleDepartments", JoinType.LEFT);
 
                 // Try to match by name OR shortName (case-insensitive)
                 Predicate namePredicate = criteriaBuilder.equal(

@@ -12,7 +12,8 @@ import lombok.NoArgsConstructor;
 public class SearchDecisionRequest {
     private String status;
     private String topic;
-    private String responsibleDepartment;
+    private String department;
+    private String committee;
     private String decisionDateFrom;
     private String decisionDateTo;
     private String keyword;
