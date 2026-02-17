@@ -50,6 +50,7 @@ public class DecisionResponse {
 
     private List<ReportResponse> reports;
     private Boolean deleted;
+    private Boolean canBeCompleted;
     private String createdBy;
     private String completedAt;
     private String completedBy;

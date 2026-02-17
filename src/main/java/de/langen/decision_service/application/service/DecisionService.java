@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -194,6 +195,10 @@ public class DecisionService {
         // Update simple fields
         if (request.getTitle() != null) {
             decision.setTitle(request.getTitle());
+        }
+
+        if (Objects.nonNull(request.isCanBeCompleted())) {
+            decision.setCanBeCompleted(request.isCanBeCompleted());
         }
 
         if (request.getStatus() != null) {

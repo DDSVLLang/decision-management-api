@@ -122,6 +122,10 @@ public class Decision {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean canBeCompleted = false;
+
     // =========================================================================
     // Reports Collection
     // =========================================================================

@@ -54,10 +54,11 @@ public class UpdateDecisionRequest {
 
     private String implementationNotes;
 
-    // NEW: Resource tracking fields
     private Integer estimatedHours;
 
     private Integer actualHours;
+
+    private boolean canBeCompleted;
 
     private String assigneeId; // UUID as string
 }

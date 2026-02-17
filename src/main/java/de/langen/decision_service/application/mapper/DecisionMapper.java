@@ -92,6 +92,7 @@ public abstract class DecisionMapper {
     @Mapping(target = "estimatedHours", source = "estimatedHours")
     @Mapping(target = "actualHours", source = "actualHours")
     @Mapping(target = "deleted", source = "deleted")
+    @Mapping(target = "canBeCompleted", source = "canBeCompleted")
     @Mapping(target = "completedAt", source = "completedAt")
 
     // IMPORTANT: Ignore all entity relationships - will be set in @AfterMapping

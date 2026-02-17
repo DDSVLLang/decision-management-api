@@ -57,7 +57,6 @@ public class DecisionSpecification {
             } else {
                 // USER: only active (non-deleted) and only own assignments
                 predicates.add(criteriaBuilder.isFalse(root.get("deleted")));
-                predicates.add(criteriaBuilder.equal(root.get("assignee").get("id"), currentUserId));
             }
 
             // ================================================================
