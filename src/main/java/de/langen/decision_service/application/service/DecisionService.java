@@ -136,6 +136,7 @@ public class DecisionService {
 
         Specification<Decision> spec = DecisionSpecification.withFilters(
                 request.getStatus(),
+                request.getPrintMatter(),
                 request.getTopic(),
                 request.getDepartment(),
                 request.getCommittee(),

@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * Service for master data management (Topics, Departments, Committees, Users).
  *
- * @author Backend Team
+ * @author Yacine  Sghairi
  * @version 2.0 - Added Topic CRUD operations
  */
 @Service

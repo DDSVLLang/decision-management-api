@@ -34,6 +34,7 @@ public class DecisionSpecification {
      */
     public static Specification<Decision> withFilters(
             String status,
+            String printMatter,
             String topic,
             String department,
             String committee,
@@ -153,7 +154,7 @@ public class DecisionSpecification {
             }
 
             // ================================================================
-            // Keyword Search (Title + Content + Print Matter)
+            // Keyword Search (Title + Content)
             // ================================================================
             if (keyword != null && !keyword.isBlank()) {
                 String likePattern = "%" + keyword.toLowerCase() + "%";

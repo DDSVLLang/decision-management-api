@@ -10,7 +10,7 @@ import java.util.UUID;
  * Committee entity representing decision-making bodies.
  * Examples: STVV, Haupt- und Finanzausschuss, Bauausschuss, etc.
  *
- * @author yacine sghairi
+ * @author Yacine Sghairi
  * @version 2.0
  */
 @Entity

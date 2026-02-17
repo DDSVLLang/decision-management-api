@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * Response DTO for User entity.
  * Includes department details instead of just name.
  *
- * @author Backend Team
+ * @author Yacine Sghairi
  * @version 2.0 - Enhanced with Department object
  */
 @Data

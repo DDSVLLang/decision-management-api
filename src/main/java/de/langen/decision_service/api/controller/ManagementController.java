@@ -20,7 +20,6 @@ import java.util.List;
  * REST Controller for master data management.
  * Provides CRUD operations for Topics, Departments, Committees, and Users.
  *
- * @author Backend Team
  * @version 2.0 - Added Topic CRUD operations
  */
 @RestController
@@ -43,7 +42,7 @@ public class ManagementController {
      * GET /api/v1/management/topic
      */
     @GetMapping("/topic")
-    @PreAuthorize("hasRole('ADMIN')")
+    // @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all topics")
     public ResponseEntity<ApiResponse<List<TopicResponse>>> getAllTopics() {
         log.debug("GET /api/v1/management/topic");
@@ -169,7 +168,7 @@ public class ManagementController {
      * GET /api/v1/management/department
      */
     @GetMapping("/department")
-    @PreAuthorize("hasRole('ADMIN')")
+    // @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all departments")
     public ResponseEntity<ApiResponse<List<DepartmentResponse>>> getAllDepartments() {
         log.debug("GET /api/v1/management/department");
@@ -295,7 +294,7 @@ public class ManagementController {
      * GET /api/v1/management/committee
      */
     @GetMapping("/committee")
-    @PreAuthorize("hasRole('ADMIN')")
+    // @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all committees")
     public ResponseEntity<ApiResponse<List<CommitteeResponse>>> getAllCommittees() {
         log.debug("GET /api/v1/management/committee");
