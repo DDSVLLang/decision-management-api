@@ -183,128 +183,130 @@ public class DecisionService {
     public DecisionResponse updateDecision(String id, UpdateDecisionRequest request, User currentUser) {
         log.info("Updating decision with id: {} by user: {}", id, currentUser.getEmail());
 
-        // Check if user is admin
-        if (!currentUser.isAdmin()) {
-            log.warn("Access denied: User {} attempted to update decision", currentUser.getEmail());
-            throw new AccessDeniedException("Only administrators can update decisions");
-        }
-
         Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
 
-        // Update simple fields
-        if (request.getTitle() != null) {
-            decision.setTitle(request.getTitle());
-        }
 
-        if (Objects.nonNull(request.isCanBeCompleted())) {
-            decision.setCanBeCompleted(request.isCanBeCompleted());
-        }
+        // Check if user is admin
+        if (!currentUser.isAdmin()) {
+            if (Objects.nonNull(request.isCanBeCompleted())) {
+                decision.setCanBeCompleted(request.isCanBeCompleted());
+            }
+            //  log.warn("Access denied: User {} attempted to update decision", currentUser.getEmail());
+            //  throw new AccessDeniedException("Only administrators can update decisions");
+        } else {
+            // Update simple fields
+            if (request.getTitle() != null) {
+                decision.setTitle(request.getTitle());
+            }
 
-        if (request.getStatus() != null) {
-            DecisionStatus newStatus = DecisionStatus.valueOf(
-                    request.getStatus().toUpperCase().replace("-", "_")
-            );
+            if (request.getStatus() != null) {
+                DecisionStatus newStatus = DecisionStatus.valueOf(
+                        request.getStatus().toUpperCase().replace("-", "_")
+                );
 
-            if (newStatus == DecisionStatus.COMPLETED) {
-                decision.markAsCompleted(currentUser.getId());
-            } else {
-                decision.setStatus(newStatus);
+                if (newStatus == DecisionStatus.COMPLETED) {
+                    decision.markAsCompleted(currentUser.getId());
+                } else {
+                    decision.setStatus(newStatus);
+                }
+            }
+
+            if (request.getPriority() != null) {
+                decision.setPriority(
+                        DecisionPriority.valueOf(
+                                request.getPriority().toUpperCase().replace("-", "_")
+                        )
+                );
+            }
+
+            if (request.getPrintMatter() != null) {
+                decision.setPrintMatter(request.getPrintMatter());
+            }
+
+            if (request.getContent() != null) {
+                decision.setContent(request.getContent());
+            }
+
+            if (request.getDueDate() != null) {
+                decision.setDueDate(parseDate(request.getDueDate()));
+            }
+
+            if (request.getImplementationNotes() != null) {
+                decision.setImplementationNotes(request.getImplementationNotes());
+            }
+
+            if (request.getEstimatedHours() != null) {
+                decision.setEstimatedHours(request.getEstimatedHours());
+            }
+
+            if (request.getActualHours() != null) {
+                decision.setActualHours(request.getActualHours());
+            }
+
+            // Update Topic
+            if (request.getTopic() != null) {
+                Topic topic = topicRepository.findByName(request.getTopic())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Topic not found: " + request.getTopic()
+                        ));
+                decision.setTopic(topic);
+            }
+
+            // Update Committee
+            if (request.getDecisionCommittee() != null) {
+                Committee committee = committeeRepository.findByName(request.getDecisionCommittee())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Committee not found: " + request.getDecisionCommittee()
+                        ));
+                decision.setCommittee(committee);
+            }
+
+            // ⭐ Update Departments - WICHTIG: REPLACE ALL
+            if (request.getResponsibleDepartments() != null && !request.getResponsibleDepartments().isEmpty()) {
+                List<Department> departments = request.getResponsibleDepartments().stream()
+                        .map(deptName -> departmentRepository.findByName(deptName)
+                                .or(() -> departmentRepository.findByShortName(deptName))
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                        "Department not found: " + deptName
+                                )))
+                        .collect(Collectors.toList());
+
+                // ⭐ CRITICAL: Clear existing + set new
+                decision.clearDepartments();
+                decision.setDepartments(departments);
+
+                log.info("Updated departments for decision {}: {}", id,
+                        departments.stream().map(Department::getShortName).collect(Collectors.toList()));
+            }
+            // Backward compatibility: single department
+            else if (request.getResponsibleDepartment() != null && !request.getResponsibleDepartment().isBlank()) {
+                Department department = departmentRepository.findByName(request.getResponsibleDepartment())
+                        .or(() -> departmentRepository.findByShortName(request.getResponsibleDepartment()))
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Department not found: " + request.getResponsibleDepartment()
+                        ));
+
+                decision.clearDepartments();
+                decision.addDepartment(department);
+
+                log.info("Updated department for decision {}: {}", id, department.getShortName());
+            }
+
+            // Update Assignee
+            if (request.getAssigneeId() != null) {
+                UUID assigneeUuid = UUID.fromString(request.getAssigneeId());
+                User assignee = userRepository.findById(assigneeUuid)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "User not found with id: " + request.getAssigneeId()
+                        ));
+                decision.assignTo(assignee);
+                log.info("Decision {} assigned to user: {} by admin: {}",
+                        id, assignee.getEmail(), currentUser.getEmail());
             }
         }
 
-        if (request.getPriority() != null) {
-            decision.setPriority(
-                    DecisionPriority.valueOf(
-                            request.getPriority().toUpperCase().replace("-", "_")
-                    )
-            );
-        }
 
-        if (request.getPrintMatter() != null) {
-            decision.setPrintMatter(request.getPrintMatter());
-        }
-
-        if (request.getContent() != null) {
-            decision.setContent(request.getContent());
-        }
-
-        if (request.getDueDate() != null) {
-            decision.setDueDate(parseDate(request.getDueDate()));
-        }
-
-        if (request.getImplementationNotes() != null) {
-            decision.setImplementationNotes(request.getImplementationNotes());
-        }
-
-        if (request.getEstimatedHours() != null) {
-            decision.setEstimatedHours(request.getEstimatedHours());
-        }
-
-        if (request.getActualHours() != null) {
-            decision.setActualHours(request.getActualHours());
-        }
-
-        // Update Topic
-        if (request.getTopic() != null) {
-            Topic topic = topicRepository.findByName(request.getTopic())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Topic not found: " + request.getTopic()
-                    ));
-            decision.setTopic(topic);
-        }
-
-        // Update Committee
-        if (request.getDecisionCommittee() != null) {
-            Committee committee = committeeRepository.findByName(request.getDecisionCommittee())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Committee not found: " + request.getDecisionCommittee()
-                    ));
-            decision.setCommittee(committee);
-        }
-
-        // ⭐ Update Departments - WICHTIG: REPLACE ALL
-        if (request.getResponsibleDepartments() != null && !request.getResponsibleDepartments().isEmpty()) {
-            List<Department> departments = request.getResponsibleDepartments().stream()
-                    .map(deptName -> departmentRepository.findByName(deptName)
-                            .or(() -> departmentRepository.findByShortName(deptName))
-                            .orElseThrow(() -> new ResourceNotFoundException(
-                                    "Department not found: " + deptName
-                            )))
-                    .collect(Collectors.toList());
-
-            // ⭐ CRITICAL: Clear existing + set new
-            decision.clearDepartments();
-            decision.setDepartments(departments);
-
-            log.info("Updated departments for decision {}: {}", id,
-                    departments.stream().map(Department::getShortName).collect(Collectors.toList()));
-        }
-        // Backward compatibility: single department
-        else if (request.getResponsibleDepartment() != null && !request.getResponsibleDepartment().isBlank()) {
-            Department department = departmentRepository.findByName(request.getResponsibleDepartment())
-                    .or(() -> departmentRepository.findByShortName(request.getResponsibleDepartment()))
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Department not found: " + request.getResponsibleDepartment()
-                    ));
-
-            decision.clearDepartments();
-            decision.addDepartment(department);
-
-            log.info("Updated department for decision {}: {}", id, department.getShortName());
-        }
-
-        // Update Assignee
-        if (request.getAssigneeId() != null) {
-            UUID assigneeUuid = UUID.fromString(request.getAssigneeId());
-            User assignee = userRepository.findById(assigneeUuid)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "User not found with id: " + request.getAssigneeId()
-                    ));
-            decision.assignTo(assignee);
-            log.info("Decision {} assigned to user: {} by admin: {}",
-                    id, assignee.getEmail(), currentUser.getEmail());
-        }
 
         Decision updatedDecision = decisionRepository.save(decision);
 
