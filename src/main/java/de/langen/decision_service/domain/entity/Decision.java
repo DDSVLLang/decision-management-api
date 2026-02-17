@@ -26,7 +26,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @SQLDelete(sql = "UPDATE dm.decision SET deleted = true WHERE id = ?")
-@SQLRestriction("deleted = false")
 public class Decision {
 
     @Id

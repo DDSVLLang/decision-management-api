@@ -18,5 +18,14 @@ public class SearchDecisionRequest {
     private String decisionDateFrom;
     private String decisionDateTo;
     private String keyword;
+    /**
+     * Filter by deleted status.
+     * ADMIN ONLY - ignored for USER role.
+     *
+     * null  → all decisions (deleted + active)   [default for admin]
+     * true  → only deleted decisions
+     * false → only active decisions
+     */
+    private String deleted;
 }
 

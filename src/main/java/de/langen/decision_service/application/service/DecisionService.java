@@ -97,13 +97,20 @@ public class DecisionService {
      */
     @Transactional(readOnly = true)
     public DecisionResponse getDecisionById(String id, User currentUser) {
-        log.debug("Fetching decision with id: {} by user: {}", id, currentUser.getEmail());
+        Decision decision;
 
-        Decision decision = decisionRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
-
-        // Check access
-        checkDecisionAccess(decision, currentUser, "view");
+        if (currentUser.isAdmin()) {
+            decision = decisionRepository.findFirstById(UUID.fromString(id))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Decision not found with id: " + id
+                    ));
+        } else {
+            decision = decisionRepository.findByIdAndDeletedFalse(UUID.fromString(id))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Decision not found with id: " + id
+                    ));
+            checkDecisionAccess(decision, currentUser, "view");
+        }
 
         User completedByUser = decision.getCompletedBy() != null
                 ? userRepository.findById(decision.getCompletedBy()).orElse(null)
@@ -135,6 +142,8 @@ public class DecisionService {
         LocalDate dateTo = parseDate(request.getDecisionDateTo());
 
         Specification<Decision> spec = DecisionSpecification.withFilters(
+                currentUser.isAdmin(),
+                currentUser.getId().toString(),
                 request.getStatus(),
                 request.getPrintMatter(),
                 request.getTopic(),
@@ -142,7 +151,8 @@ public class DecisionService {
                 request.getCommittee(),
                 dateFrom,
                 dateTo,
-                request.getKeyword()
+                request.getKeyword(),
+                Boolean.parseBoolean(request.getDeleted())
         );
 
         // USER: Add filter for assigned decisions only
@@ -301,18 +311,18 @@ public class DecisionService {
     }
 
     /**
-     * Delete a decision.
+     * Soft-delete a decision by setting deleted = true.
      * ADMIN ONLY
      *
-     * @param id decision ID
+     * @param id          decision ID
      * @param currentUser authenticated user (must be ADMIN)
-     * @throws AccessDeniedException if user is not admin
+     * @throws AccessDeniedException   if user is not admin
+     * @throws ResourceNotFoundException if decision not found
      */
     @Transactional
     public void deleteDecision(String id, User currentUser) {
-        log.info("Deleting decision with id: {} by user: {}", id, currentUser.getEmail());
+        log.info("Soft-deleting decision with id: {} by user: {}", id, currentUser.getEmail());
 
-        // Check if user is admin
         if (!currentUser.isAdmin()) {
             log.warn("Access denied: User {} attempted to delete decision", currentUser.getEmail());
             throw new AccessDeniedException("Only administrators can delete decisions");
@@ -321,9 +331,16 @@ public class DecisionService {
         Decision decision = decisionRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with id: " + id));
 
-        decisionRepository.delete(decision);
-        log.info("Decision {} deleted by admin: {}", id, currentUser.getEmail());
+        if (decision.getDeleted()) {
+            throw new IllegalStateException("Decision with id " + id + " is already deleted");
+        }
+
+        decision.setDeleted(true);
+        decisionRepository.save(decision);
+
+        log.info("Decision {} soft-deleted by admin: {}", id, currentUser.getEmail());
     }
+
 
     /**
      * Get all decisions assigned to a specific user.

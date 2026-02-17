@@ -33,6 +33,8 @@ public class DecisionSpecification {
      * @return specification for query
      */
     public static Specification<Decision> withFilters(
+            boolean isAdmin,
+            String currentUserId,
             String status,
             String printMatter,
             String topic,
@@ -40,13 +42,23 @@ public class DecisionSpecification {
             String committee,
             LocalDate dateFrom,
             LocalDate dateTo,
-            String keyword
+            String keyword,
+            boolean deleted
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Always exclude soft-deleted decisions
-            predicates.add(criteriaBuilder.equal(root.get("deleted"), false));
+            if (isAdmin) {
+                // ⭐ ADMIN: no deleted filter - sees everything
+                // Optionally filter by deleted flag if request specifies
+                if (deleted) {
+                    predicates.add(criteriaBuilder.equal(root.get("deleted"), deleted));
+                }
+            } else {
+                // USER: only active (non-deleted) and only own assignments
+                predicates.add(criteriaBuilder.isFalse(root.get("deleted")));
+                predicates.add(criteriaBuilder.equal(root.get("assignee").get("id"), currentUserId));
+            }
 
             // ================================================================
             // Status Filter

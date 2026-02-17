@@ -41,7 +41,7 @@ public class DecisionApiController {
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    //  @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a new decision")
     public ResponseEntity<ApiResponse<DecisionResponse>> createDecision(
             @Valid @RequestBody CreateDecisionRequest request,
@@ -156,7 +156,7 @@ public class DecisionApiController {
      * PUT /api/v1/decision/{id}
      */
     @PutMapping("/{id}")
-    //  @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Update decision")
     public ResponseEntity<ApiResponse<DecisionResponse>> updateDecision(
             @PathVariable String id,
@@ -195,7 +195,7 @@ public class DecisionApiController {
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete decision (soft delete)")
     public ResponseEntity<ApiResponse<Void>> deleteDecision(@PathVariable String id, @AuthenticationPrincipal User currentUser) {
         if (Objects.isNull(currentUser)) {
@@ -271,7 +271,7 @@ public class DecisionApiController {
      * GET /api/v1/decision/assignments/{userId}
      */
     @GetMapping("/assignments/{userId}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Page<DecisionResponse>>> getUserAssignments(
             @PathVariable String userId,
             Pageable pageable,

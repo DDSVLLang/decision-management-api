@@ -13,7 +13,9 @@ import java.util.UUID;
 
 @Repository
 public interface DecisionRepository extends JpaRepository<Decision, UUID>, JpaSpecificationExecutor<Decision> {
-    Optional<Decision> findById(UUID id);
+    Optional<Decision> findFirstById(UUID id);
+    Optional<Decision> findByIdAndDeletedFalse(UUID id);
+    Optional<Decision> findByIdAndDeletedTrue(UUID id);
     Page<Decision> findByAssigneeId(UUID id, Pageable pageable);
 }
 
