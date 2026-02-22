@@ -1,6 +1,7 @@
 package de.langen.decision_service.domain.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -39,7 +40,11 @@ public class Report {
     @Column(length = 255)
     private String title;
 
-    @Column(nullable = false, length = 4)
+    @Pattern(
+            regexp = "^(19|20)\\d{2}/(19|20)\\d{2}$",
+            message = "Year must be in format YYYY/YYYY (e.g., 2024/2025)"
+    )
+    @Column(nullable = false, length = 9)
     private String year;
 
     @Column(nullable = false, columnDefinition = "TEXT")

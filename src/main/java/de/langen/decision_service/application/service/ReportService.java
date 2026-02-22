@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -163,12 +164,24 @@ public class ReportService {
      */
     @Transactional(readOnly = true)
     public ReportResponse getReportById(String reportId, User currentUser) {
+        if (currentUser == null) {
+            throw new AccessDeniedException("Unauthorized: No authenticated user found");
+        }
+
         log.debug("Fetching report with id: {} by user: {}", reportId, currentUser.getEmail());
 
-        Report report = reportRepository.findById(UUID.fromString(reportId))
+        UUID reportUuid = UUID.fromString(reportId);
+
+        Report report = reportRepository.findByIdWithDecisionAndAssignee(reportUuid)
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + reportId));
 
-        // Check access to decision
+        if (report.getDecision() == null) {
+            // This should never happen if DB constraints are correct.
+            throw new IllegalStateException(
+                    "Report " + reportId + " has no decision associated. Data integrity issue (decision_id is null)."
+            );
+        }
+
         checkDecisionAccess(report.getDecision(), currentUser, "view report for");
 
         User createdByUser = report.getCreatedBy() != null
@@ -347,7 +360,13 @@ public class ReportService {
         }
 
         // User can only access decisions assigned to them
-        if (decision.getAssignee() == null || !decision.getAssignee().getId().equals(user.getId())) {
+        var userDept = user.getDepartment();
+        var decisionDepts = decision.getResponsibleDepartments();
+
+        boolean hasAccess = decisionDepts != null && decisionDepts.stream().anyMatch(d ->
+                d != null && ((d.getId() != null && Objects.equals(d.getId(), userDept.getId()))));
+
+        if (!hasAccess) {
             log.warn("Access denied: User {} attempted to {} decision {} (not assigned)",
                     user.getEmail(), action, decision.getId());
             throw new AccessDeniedException(

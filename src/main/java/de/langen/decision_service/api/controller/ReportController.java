@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -80,14 +81,23 @@ public class ReportController {
      *
      * PUT /api/v1/report/{reportId}
      */
-    @PutMapping("/report/{reportId}")
+    @PutMapping("decision/{decisionId}/report/{reportId}")
     public ResponseEntity<ApiResponse<ReportResponse>> updateReport(
             @PathVariable String reportId,
+            @PathVariable String decisionId,
             @Valid @RequestBody UpdateReportRequest request,
             @AuthenticationPrincipal User currentUser
     ) {
-        log.info("Updating report: {} by user: {}", reportId, currentUser.getEmail());
+        if (Objects.isNull(currentUser)) {
+            ApiResponse<ReportResponse> errorResponse = ApiResponse.<ReportResponse>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
 
+        log.info("Updating report: {} by user: {}", reportId, currentUser.getEmail());
         ReportResponse report = reportService.updateReport(reportId, request, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()
@@ -112,6 +122,15 @@ public class ReportController {
             @PathVariable String reportId,
             @AuthenticationPrincipal User currentUser
     ) {
+        if (Objects.isNull(currentUser)) {
+            ApiResponse<ReportResponse> errorResponse = ApiResponse.<ReportResponse>builder()
+                    .success(false)
+                    .message("Unauthorized: No authenticated user found")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
         ReportResponse report = reportService.getReportById(reportId, currentUser);
 
         ApiResponse<ReportResponse> response = ApiResponse.<ReportResponse>builder()

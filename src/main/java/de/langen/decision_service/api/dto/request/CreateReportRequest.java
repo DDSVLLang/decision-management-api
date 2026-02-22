@@ -19,14 +19,19 @@ import lombok.NoArgsConstructor;
 public class CreateReportRequest {
 
     @NotBlank(message = "Year is required")
-    @Pattern(regexp = "\\d{4}", message = "Year must be a 4-digit string")
+    @Pattern(
+            regexp = "^(19|20)\\d{2}/(19|20)\\d{2}$",
+            message = "Year must be in format YYYY/YYYY (e.g., 2024/2025)"
+    )
     private String year;
 
     @NotBlank(message = "Content is required")
     @Size(min = 1, message = "Content must not be empty")
     private String content;
 
-    @Pattern(regexp = "Q1|Q2|Q3|Q4",
-            message = "Expected completion quarter must be one of Q1, Q2, Q3, Q4")
+    @Pattern(
+            regexp = "^(19|20)\\d{2}/Q[1-4]$",
+            message = "Expected completion quarter must be in format YYYY/Q1, YYYY/Q2, YYYY/Q3 or YYYY/Q4 (e.g., 2026/Q1)"
+    )
     private String expectedCompletionQuarter;
 }

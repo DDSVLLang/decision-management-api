@@ -23,13 +23,19 @@ public class UpdateReportRequest {
     @Size(max = 500, message = "Title must not exceed 500 characters")
     private String title;
 
-    @Pattern(regexp = "\\d{4}", message = "Year must be in format YYYY")
+    @Pattern(
+            regexp = "^(19|20)\\d{2}/(19|20)\\d{2}$",
+            message = "Year must be in format YYYY/YYYY (e.g., 2024/2025)"
+    )
     private String year;
 
     @Size(max = 5000, message = "Content must not exceed 5000 characters")
     private String content;
 
-    @Pattern(regexp = "Q[1-4]", message = "Expected completion quarter must be Q1, Q2, Q3, or Q4")
+    @Pattern(
+            regexp = "^(19|20)\\d{2}/Q[1-4]$",
+            message = "Expected completion quarter must be in format YYYY/Q1, YYYY/Q2, YYYY/Q3 or YYYY/Q4 (e.g., 2026/Q1)"
+    )
     private String expectedCompletionQuarter;
 
     @Pattern(regexp = "DRAFT|SUBMITTED|APPROVED|REJECTED", message = "Status must be DRAFT, SUBMITTED, APPROVED, or REJECTED")

@@ -3,6 +3,8 @@ package de.langen.decision_service.domain.repository;
 import de.langen.decision_service.domain.entity.Report;
 import de.langen.decision_service.domain.entity.ReportStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -91,4 +93,13 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
      * @return count
      */
     long countByStatus(ReportStatus status);
+
+    @Query("""
+           select r
+           from Report r
+           join fetch r.decision d
+           left join fetch d.assignee
+           where r.id = :id
+           """)
+    Optional<Report> findByIdWithDecisionAndAssignee(@Param("id") UUID id);
 }
