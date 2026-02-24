@@ -156,7 +156,6 @@ public class DecisionApiController {
      * PUT /api/v1/decision/{id}
      */
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Update decision")
     public ResponseEntity<ApiResponse<DecisionResponse>> updateDecision(
             @PathVariable String id,
