@@ -146,6 +146,7 @@ public class DecisionService {
                 currentUser.isAdmin(),
                 currentUser.getId().toString(),
                 request.getStatus(),
+                request.getCanBeCompleted(),
                 request.getPrintMatter(),
                 request.getTopic(),
                 request.getDepartment(),

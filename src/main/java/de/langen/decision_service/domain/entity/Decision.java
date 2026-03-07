@@ -284,6 +284,7 @@ public class Decision {
      */
     public void markAsCompleted(UUID completedByUserId) {
         this.status = DecisionStatus.COMPLETED;
+        this.canBeCompleted = false;
         this.completedAt = LocalDateTime.now();
         this.completedBy = completedByUserId;
     }

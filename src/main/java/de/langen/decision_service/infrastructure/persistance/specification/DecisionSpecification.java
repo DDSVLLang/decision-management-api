@@ -36,6 +36,7 @@ public class DecisionSpecification {
             boolean isAdmin,
             String currentUserId,
             String status,
+            String canBeCompleted,
             String printMatter,
             String topic,
             String department,
@@ -73,6 +74,17 @@ public class DecisionSpecification {
                     predicates.add(criteriaBuilder.equal(root.get("status"), decisionStatus));
                 } catch (IllegalArgumentException e) {
                     // Invalid status - skip filter
+                }
+            }
+
+            // ================================================================
+            // canBeCompleted Filter
+            // ================================================================
+            if (canBeCompleted != null && !canBeCompleted.isBlank()) {
+                try {
+                    predicates.add(criteriaBuilder.equal(root.get("canBeCompleted"), Boolean.parseBoolean(canBeCompleted)));
+                } catch (IllegalArgumentException e) {
+                    // Invalid canBeCompleted value - skip filter
                 }
             }
 

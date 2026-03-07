@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SearchDecisionRequest {
     private String status;
+    private String canBeCompleted;
     private String printMatter;
     private String topic;
     private String department;
