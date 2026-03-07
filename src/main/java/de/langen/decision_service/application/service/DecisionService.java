@@ -11,14 +11,14 @@ import de.langen.decision_service.domain.repository.*;
 import de.langen.decision_service.infrastructure.persistance.specification.DecisionSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -154,7 +154,9 @@ public class DecisionService {
                 dateFrom,
                 dateTo,
                 request.getKeyword(),
-                Boolean.parseBoolean(request.getDeleted())
+                Boolean.parseBoolean(request.getDeleted()),
+                request.getPrintMatterYear(),
+                request.getPrintMatterElectionPeriod()
         );
 
         // USER: Add filter for assigned decisions only
@@ -166,8 +168,22 @@ public class DecisionService {
             log.debug("Applied assignee filter for user: {}", currentUser.getEmail());
         }
 
-        Page<Decision> decisions = decisionRepository.findAll(spec, pageable);
-        return decisions.map(d -> decisionMapper.toResponse(d, null));
+        // ⭐ Fetch ALL results (no pagination yet) for custom sorting
+        List<Decision> allDecisions = decisionRepository.findAll(spec);
+
+        //  Apply custom sort
+        List<Decision> sorted = allDecisions.stream()
+                .sorted(createPrintMatterComparator())
+                .collect(Collectors.toList());
+
+        //  Apply pagination manually
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), sorted.size());
+        List<Decision> pageContent = sorted.subList(start, end);
+
+        Page<Decision> page = new PageImpl<>(pageContent, pageable, sorted.size());
+
+        return page.map(d -> decisionMapper.toResponse(d, null));
     }
 
     /**
@@ -424,4 +440,122 @@ public class DecisionService {
             return null;
         }
     }
+
+    /**
+     * Creates custom sort that pushes UNKNOWN topics to the end.
+     * Preserves user-requested sorting as primary sort.
+     */
+    private Pageable createCustomSort(Pageable pageable) {
+        Sort userSort = pageable.getSort();
+
+        // Custom sort: topic.name != 'UNKNOWN' DESC (true first, false last)
+        // This means: normal topics (true) come first, UNKNOWN (false) comes last
+        Sort unknownLast = Sort.by(
+                Sort.Order.asc("topicName")  // Computed in Specification
+        );
+
+        // Combine: user sort takes precedence, then UNKNOWN-last
+        Sort combinedSort = userSort.isSorted()
+                ? userSort.and(unknownLast)
+                : unknownLast;
+
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                combinedSort
+        );
+    }
+
+    /**
+     * Create comparator for natural PrintMatter sorting.
+     *
+     * Sort order:
+     * 1. UNKNOWN topics last
+     * 2. PrintMatter number1 ASC
+     * 3. PrintMatter number2 ASC
+     * 4. PrintMatter year ASC
+     * 5. DecisionDate DESC
+     */
+    private Comparator<Decision> createPrintMatterComparator() {
+        return Comparator
+                // 1. UNKNOWN topics last
+                .comparing((Decision d) ->
+                        "UNKNOWN".equals(d.getTopic() != null ? d.getTopic().getName() : "")
+                )
+                // 2. PrintMatter year ASC
+                .thenComparing(d -> extractPrintMatterYear(d.getPrintMatter()))
+                // 3. PrintMatter number1 ASC
+                .thenComparing(d -> extractPrintMatterNumber1(d.getPrintMatter()))
+                // 4. PrintMatter number2 ASC
+                .thenComparing(d -> extractPrintMatterNumber2(d.getPrintMatter()));
+    }
+
+    /**
+     * Extract first number from printMatter.
+     * Examples:
+     *   "287-10/XVI/10" → 287
+     *   "234/X/26"      → 234
+     */
+    private Integer extractPrintMatterNumber1(String printMatter) {
+        if (printMatter == null || printMatter.isBlank()) {
+            return Integer.MAX_VALUE;  // Sort nulls/empty last
+        }
+
+        try {
+            // Split by '/' first, then by '-'
+            String firstPart = printMatter.split("/")[0];
+            String number1Str = firstPart.split("-")[0];
+            return Integer.parseInt(number1Str.trim());
+        } catch (Exception e) {
+            log.warn("Failed to extract number1 from printMatter: {}", printMatter);
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    /**
+     * Extract second number from printMatter (after '-').
+     * Examples:
+     *   "287-10/XVI/10" → 10
+     *   "234/X/26"      → 0 (no second number)
+     */
+    private Integer extractPrintMatterNumber2(String printMatter) {
+        if (printMatter == null || printMatter.isBlank()) {
+            return 0;
+        }
+
+        try {
+            String firstPart = printMatter.split("/")[0];
+            String[] parts = firstPart.split("-");
+
+            if (parts.length > 1) {
+                return Integer.parseInt(parts[1].trim());
+            }
+            return 0;  // No second number
+        } catch (Exception e) {
+            log.warn("Failed to extract number2 from printMatter: {}", printMatter);
+            return 0;
+        }
+    }
+
+    /**
+     * Extract year from printMatter (last 2 digits after last '/').
+     * Examples:
+     *   "287-10/XVI/10" → 10
+     *   "234/X/26"      → 26
+     */
+    private Integer extractPrintMatterYear(String printMatter) {
+        if (printMatter == null || printMatter.isBlank()) {
+            return 0;
+        }
+
+        try {
+            String[] parts = printMatter.split("/");
+            String yearStr = parts[parts.length - 1].trim();
+            return Integer.parseInt(yearStr);
+        } catch (Exception e) {
+            log.warn("Failed to extract year from printMatter: {}", printMatter);
+            return 0;
+        }
+    }
+
 }

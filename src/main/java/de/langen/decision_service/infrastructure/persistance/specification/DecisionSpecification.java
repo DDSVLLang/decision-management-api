@@ -44,13 +44,15 @@ public class DecisionSpecification {
             LocalDate dateFrom,
             LocalDate dateTo,
             String keyword,
-            boolean deleted
+            boolean deleted,
+            String printMatterYear,
+            String printMatterElectionPeriod
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (isAdmin) {
-                // ⭐ ADMIN: no deleted filter - sees everything
+                // ADMIN: no deleted filter - sees everything
                 // Optionally filter by deleted flag if request specifies
                 if (deleted) {
                     predicates.add(criteriaBuilder.equal(root.get("deleted"), deleted));
@@ -202,6 +204,28 @@ public class DecisionSpecification {
                         titlePredicate,
                         contentPredicate,
                         printMatterPredicate
+                ));
+            }
+
+            // =========================================================
+            // PrintMatter Component Filters
+            // =========================================================
+
+            // Filter by year (last 2 digits after last '/')
+            // printMatter = "287-10/XVI/10" → year = "10"
+            if (printMatterYear != null && !printMatterYear.isBlank()) {
+                predicates.add(criteriaBuilder.like(
+                        root.get("printMatter"),
+                        "%/" + printMatterYear  // Matches: ".../.../10"
+                ));
+            }
+
+            // Filter by Wahlperiode (römische Zahl between '/' slashes)
+            // printMatter = "287-10/XVI/10" → wahlperiode = "XVI"
+            if (printMatterElectionPeriod != null && !printMatterElectionPeriod.isBlank()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.upper(root.get("printMatter")),
+                        "%/" + printMatterElectionPeriod.toUpperCase() + "/%"
                 ));
             }
 
