@@ -15,7 +15,9 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://127.0.0.1:81",
                         "http://dm-ui:81",
                         "http://localhost",
-                        "http://127.0.0.1"
+                        "http://127.0.0.1",
+                        "http://10.55.14.2:81",
+                        "http://10.55.14.2"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
