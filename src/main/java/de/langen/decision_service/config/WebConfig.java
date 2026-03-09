@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "http://localhost:81",
                         "http://127.0.0.1:81",
+                        "http://0.0.0.0",
                         "http://dm-ui:81",
                         "http://localhost",
                         "http://127.0.0.1",
