@@ -23,7 +23,7 @@ import java.util.List;
  * @version 2.0 - Added Topic CRUD operations
  */
 @RestController
-@RequestMapping("/api/v1/management")
+@RequestMapping("/v1/management")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Management API", description = "Master data management")
