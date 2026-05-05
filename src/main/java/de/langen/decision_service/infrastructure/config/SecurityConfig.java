@@ -54,7 +54,16 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
-                "*"
+                "http://localhost:81",
+                "http://127.0.0.1:81",
+                "http://0.0.0.0",
+                "http://dm-ui:81",
+                "http://localhost",
+                "http://beschluss.langen.de",
+                "https://beschluss.langen.de",
+                "http://127.0.0.1",
+                "http://10.55.14.2:81",
+                "http://10.55.14.2"
         ));
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
@@ -71,7 +80,16 @@ public class SecurityConfig {
         public void addCorsMappings(CorsRegistry registry) {
             registry.addMapping("/**")
                     .allowedOrigins(
-                            "*"
+                            "http://localhost:81",
+                            "http://127.0.0.1:81",
+                            "http://0.0.0.0",
+                            "http://dm-ui:81",
+                            "http://localhost",
+                            "http://beschluss.langen.de",
+                            "https://beschluss.langen.de",
+                            "http://127.0.0.1",
+                            "http://10.55.14.2:81",
+                            "http://10.55.14.2"
                     )
                     .allowedMethods("GET","POST","PUT","PATCH","DELETE","OPTIONS")
                     .allowedHeaders("*")
