@@ -63,19 +63,6 @@ public class SecurityConfig {
         return source;
     }
 
-    @Configuration
-    public class CorsConfig implements WebMvcConfigurer {
-        @Override
-        public void addCorsMappings(CorsRegistry registry) {
-            registry.addMapping("/**")
-                    .allowedOrigins("*")
-                    .allowedMethods("GET","POST","PUT","PATCH","DELETE","OPTIONS")
-                    .allowedHeaders("*")
-                    .allowCredentials(false);
-        }
-    }
-
-
     /**
      * Password encoder bean (BCrypt).
      *
