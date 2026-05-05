@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @RestController
-@RequestMapping("/api/v1/decision")
+@RequestMapping("/v1/decision")
 @RequiredArgsConstructor
 @Tag(name = "Decision API", description = "Decision management endpoints")
 @Slf4j
