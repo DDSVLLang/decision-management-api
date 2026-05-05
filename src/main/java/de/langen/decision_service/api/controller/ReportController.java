@@ -30,7 +30,7 @@ import java.util.Objects;
  * @version 2.0
  */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/v1")
 @RequiredArgsConstructor
 @Slf4j
 public class ReportController {
